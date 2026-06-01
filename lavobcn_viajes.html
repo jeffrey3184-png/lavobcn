@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LavoBCN — Panel de Gestión</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --azul:#1a56ff;--azul2:#0f3acc;--verde:#00c896;--naranja:#ff6b35;
+  --rojo:#ef4444;--bg:#f0f4ff;--card:#fff;--text:#0a0f2c;--muted:#6b7280;--border:#e5e7f0;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* NAV */
+nav{background:var(--azul);padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:50;}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:20px;color:#fff;}
+.logo span{color:#93c5fd;}
+.nav-btns{display:flex;gap:4px;}
+.nb{padding:5px 12px;border-radius:16px;border:none;cursor:pointer;font-size:12px;font-weight:500;background:rgba(255,255,255,0.15);color:#fff;transition:all .2s;}
+.nb.active{background:#fff;color:var(--azul);}
+
+/* PAGES */
+.page{display:none;padding:16px;max-width:600px;margin:0 auto;}
+.page.active{display:block;animation:fi .3s ease;}
+@keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* HERO */
+.hero{background:linear-gradient(135deg,var(--azul),#3b82f6);border-radius:16px;padding:24px;color:#fff;margin-bottom:16px;}
+.hero h1{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:4px;}
+.hero p{font-size:13px;opacity:0.85;margin-bottom:16px;}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.stat{text-align:center;background:rgba(255,255,255,0.15);border-radius:10px;padding:10px;}
+.stat .n{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;}
+.stat .l{font-size:10px;opacity:0.75;text-transform:uppercase;letter-spacing:0.5px;}
+
+/* VIAJE CARD */
+.viaje{background:var(--card);border-radius:14px;padding:16px;border:1px solid var(--border);margin-bottom:10px;transition:box-shadow .2s;}
+.viaje:hover{box-shadow:0 4px 16px rgba(26,86,255,0.1);}
+.viaje-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.viaje-id{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--azul);}
+.badge{padding:3px 10px;border-radius:12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;}
+.b-pending{background:#fef3c7;color:#92400e;}
+.b-active{background:#d1fae5;color:#065f46;}
+.b-done{background:#e0e7ff;color:#3730a3;}
+.ruta{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.punto{font-size:13px;font-weight:500;}
+.flecha{color:var(--azul);font-size:16px;}
+.viaje-meta{font-size:12px;color:var(--muted);margin-bottom:10px;}
+.viaje-btns{display:flex;gap:8px;flex-wrap:wrap;}
+.btn{padding:8px 16px;border-radius:10px;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;font-size:13px;transition:all .2s;}
+.btn-primary{background:var(--azul);color:#fff;}
+.btn-primary:hover{background:var(--azul2);}
+.btn-success{background:var(--verde);color:#fff;}
+.btn-danger{background:var(--rojo);color:#fff;}
+.btn-full{width:100%;font-size:15px;padding:14px;}
+.btn-outline{background:transparent;border:1.5px solid var(--azul);color:var(--azul);}
+
+/* FORM */
+.form-card{background:var(--card);border-radius:16px;padding:20px;border:1px solid var(--border);margin-bottom:16px;}
+.form-card h2{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;margin-bottom:16px;}
+.fg{display:flex;flex-direction:column;gap:5px;margin-bottom:12px;}
+.fg label{font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;}
+.fg input,.fg select,.fg textarea{padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--text);background:#fff;outline:none;transition:border-color .2s;}
+.fg input:focus,.fg select:focus{border-color:var(--azul);}
+.fg textarea{resize:vertical;min-height:70px;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+/* MAPA ENLACE */
+.mapa-btn{display:flex;align-items:center;gap:8px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;padding:10px 14px;font-size:13px;color:#0369a1;cursor:pointer;text-decoration:none;margin-top:8px;}
+.mapa-btn:hover{background:#e0f2fe;}
+
+/* ENLACE BOX */
+.enlace-box{background:#f8faff;border:1.5px dashed var(--azul);border-radius:12px;padding:16px;margin-bottom:16px;text-align:center;}
+.enlace-box p{font-size:12px;color:var(--muted);margin-bottom:8px;}
+.enlace-url{font-size:13px;font-weight:500;color:var(--azul);word-break:break-all;margin-bottom:10px;}
+.copy-btn{background:var(--azul);color:#fff;border:none;padding:8px 20px;border-radius:8px;font-size:13px;cursor:pointer;}
+
+/* LIVE */
+.live{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--verde);font-weight:500;}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--verde);animation:pulse 1.5s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+
+.sec-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;}
+.empty{text-align:center;padding:32px;color:var(--muted);font-size:13px;}
+
+/* MODAL */
+.overlay{display:none;position:fixed;inset:0;background:rgba(10,15,44,0.5);z-index:100;align-items:center;justify-content:center;padding:20px;}
+.overlay.show{display:flex;}
+.modal{background:#fff;border-radius:20px;padding:28px;max-width:420px;width:100%;animation:fi .3s ease;}
+.modal h2{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;margin-bottom:6px;}
+.modal p{color:var(--muted);font-size:13px;margin-bottom:20px;line-height:1.5;}
+.modal-btns{display:flex;gap:10px;}
+.modal-btns .btn{flex:1;}
+
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--text);color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;z-index:200;opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* REPARTIDOR */
+.rep-info{background:linear-gradient(135deg,#1e3a8a,#1a56ff);border-radius:14px;padding:16px;color:#fff;margin-bottom:16px;display:flex;align-items:center;gap:14px;}
+.rep-avatar{width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:20px;flex-shrink:0;}
+.rep-name{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;}
+.rep-sub{font-size:12px;opacity:0.8;}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">Lavo<span>BCN</span></div>
+  <div class="nav-btns">
+    <button class="nb active" onclick="pg('admin',this)">🛠 Admin</button>
+    <button class="nb" onclick="pg('nuevo',this)">➕ Viaje</button>
+    <button class="nb" onclick="pg('rep',this)">🛵 Repartidor</button>
+  </div>
+</nav>
+
+<!-- ══════════ ADMIN ══════════ -->
+<div class="page active" id="page-admin">
+  <div class="hero">
+    <div class="live"><div class="dot"></div> En vivo</div>
+    <h1>Panel LavoBCN</h1>
+    <p>Jeffrey Guerra — Gestor de viajes</p>
+    <div class="stats">
+      <div class="stat"><div class="n" id="st">0</div><div class="l">Total</div></div>
+      <div class="stat"><div class="n" id="sa">0</div><div class="l">En curso</div></div>
+      <div class="stat"><div class="n" id="se">0</div><div class="l">Entregados</div></div>
+    </div>
+  </div>
+
+  <div class="enlace-box">
+    <p>🔗 Enlace para clientes — comparte por WhatsApp</p>
+    <div class="enlace-url" id="enlace-cliente">Cargando...</div>
+    <button class="copy-btn" onclick="copiar('cliente')">📋 Copiar enlace</button>
+  </div>
+
+  <div class="sec-title">Viajes activos <span class="live"><div class="dot"></div></span></div>
+  <div id="lista-admin"></div>
+</div>
+
+<!-- ══════════ NUEVO VIAJE ══════════ -->
+<div class="page" id="page-nuevo">
+  <div class="form-card">
+    <h2>➕ Registrar viaje</h2>
+    <div class="fg">
+      <label>Nombre del cliente</label>
+      <input type="text" id="n-nombre" placeholder="Nombre completo">
+    </div>
+    <div class="fg">
+      <label>Teléfono</label>
+      <input type="tel" id="n-tel" placeholder="+34 600 000 000">
+    </div>
+    <div class="row2">
+      <div class="fg">
+        <label>Origen</label>
+        <select id="n-origen">
+          <option>Hotel Vit</option>
+          <option>Mar Arreglos</option>
+          <option>Prim</option>
+          <option>Perfec</option>
+          <option>Tiente</option>
+          <option>Otro</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Destino</label>
+        <select id="n-destino">
+          <option>Perfec</option>
+          <option>Prim</option>
+          <option>Tiente</option>
+          <option>Hotel Vit</option>
+          <option>Mar Arreglos</option>
+          <option>Otro</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg">
+      <label>Servicio</label>
+      <select id="n-servicio">
+        <option value="lavado">Lavado básico — €12</option>
+        <option value="planchado">Lavado + Planchado — €20</option>
+        <option value="express">Express 24h — €28</option>
+        <option value="premium">Premium — €40</option>
+      </select>
+    </div>
+    <div class="fg">
+      <label>Notas</label>
+      <textarea id="n-notas" placeholder="Ropa delicada, instrucciones especiales..."></textarea>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="crearViaje()">✅ Crear viaje</button>
+  </div>
+</div>
+
+<!-- ══════════ REPARTIDOR ══════════ -->
+<div class="page" id="page-rep">
+  <div class="rep-info">
+    <div class="rep-avatar">JG</div>
+    <div>
+      <div class="rep-name">Jeffrey Guerra</div>
+      <div class="rep-sub">Repartidor principal · Barcelona</div>
+    </div>
+  </div>
+
+  <div class="sec-title">Mis viajes asignados</div>
+  <div id="lista-rep"></div>
+</div>
+
+<!-- MODAL -->
+<div class="overlay" id="modal">
+  <div class="modal">
+    <h2 id="m-title">✅ Listo</h2>
+    <p id="m-body"></p>
+    <div class="modal-btns">
+      <button class="btn btn-primary" onclick="cerrar()">Entendido</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══ ESTADO ══
+const PRECIOS = {lavado:12,planchado:20,express:28,premium:40};
+let viajes = [];
+let nid = 2001;
+
+// ══ VIAJES PRECARGADOS (los de Jeffrey) ══
+const VIAJES_INICIALES = [
+  {id:2001,nombre:'Jeffrey',tel:'+34 600 000 001',origen:'Hotel Vit',destino:'Perfec',servicio:'lavado',notas:'Arreglos hotel',precio:12,estado:'en curso',hora:'09:00',repartidor:'Jeffrey Guerra'},
+  {id:2002,nombre:'Jeffrey',tel:'+34 600 000 001',origen:'Mar Arreglos',destino:'Perfec',servicio:'lavado',notas:'',precio:12,estado:'en curso',hora:'09:30',repartidor:'Jeffrey Guerra'},
+  {id:2003,nombre:'Jeffrey',tel:'+34 600 000 001',origen:'Prim',destino:'Perfec',servicio:'lavado',notas:'',precio:12,estado:'pendiente',hora:'10:00',repartidor:'Jeffrey Guerra'},
+  {id:2004,nombre:'Jeffrey',tel:'+34 600 000 001',origen:'Perfec',destino:'Prim',servicio:'lavado',notas:'',precio:12,estado:'pendiente',hora:'10:30',repartidor:'Jeffrey Guerra'},
+  {id:2005,nombre:'Jeffrey',tel:'+34 600 000 001',origen:'Perfec',destino:'Tiente',servicio:'lavado',notas:'',precio:12,estado:'pendiente',hora:'11:00',repartidor:'Jeffrey Guerra'},
+];
+
+function init() {
+  viajes = [...VIAJES_INICIALES];
+  nid = 2006;
+  render();
+  // Enlace cliente
+  const url = window.location.href.split('?')[0];
+  document.getElementById('enlace-cliente').textContent = url + '?rol=cliente';
+}
+
+// ══ NAVEGACIÓN ══
+function pg(p, el) {
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.nb').forEach(x=>x.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  if(el) el.classList.add('active');
+  render();
+}
+
+// ══ CREAR VIAJE ══
+function crearViaje() {
+  const nombre = document.getElementById('n-nombre').value.trim();
+  const tel = document.getElementById('n-tel').value.trim();
+  const origen = document.getElementById('n-origen').value;
+  const destino = document.getElementById('n-destino').value;
+  const servicio = document.getElementById('n-servicio').value;
+  const notas = document.getElementById('n-notas').value.trim();
+
+  if(!nombre||!tel){toast('⚠️ Nombre y teléfono son obligatorios');return;}
+  if(origen===destino){toast('⚠️ Origen y destino no pueden ser iguales');return;}
+
+  const v = {id:nid++,nombre,tel,origen,destino,servicio,notas,precio:PRECIOS[servicio],estado:'pendiente',hora:new Date().toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'}),repartidor:'Jeffrey Guerra'};
+  viajes.push(v);
+
+  ['n-nombre','n-tel','n-notas'].forEach(id=>document.getElementById(id).value='');
+  mostrarModal('✅ Viaje #'+v.id+' creado',`${nombre} — ${origen} → ${destino}\n${servicioLabel(servicio)} — €${v.precio}\nAsignado a Jeffrey Guerra.`);
+  render();
+}
+
+// ══ CAMBIAR ESTADO ══
+function estado(id, e) {
+  const v = viajes.find(x=>x.id===id);
+  if(v){v.estado=e;render();toast('Viaje #'+id+' → '+eLabel(e));}
+}
+
+// ══ ABRIR MAPA ══
+function mapa(origen, destino) {
+  const q = encodeURIComponent(origen+' Barcelona a '+destino+' Barcelona');
+  window.open('https://www.google.com/maps/dir/?api=1&origin='+encodeURIComponent(origen+' Barcelona')+'&destination='+encodeURIComponent(destino+' Barcelona'),'_blank');
+}
+
+// ══ RENDER ══
+function render() {
+  const total = viajes.length;
+  const activos = viajes.filter(v=>v.estado==='en curso').length;
+  const entregados = viajes.filter(v=>v.estado==='entregado').length;
+  document.getElementById('st').textContent = total;
+  document.getElementById('sa').textContent = activos;
+  document.getElementById('se').textContent = entregados;
+
+  // Admin
+  const la = document.getElementById('lista-admin');
+  la.innerHTML = viajes.length === 0
+    ? '<div class="empty">Sin viajes registrados</div>'
+    : viajes.slice().reverse().map(v=>`
+      <div class="viaje">
+        <div class="viaje-top">
+          <span class="viaje-id">#${v.id}</span>
+          <span class="badge ${bClass(v.estado)}">${eLabel(v.estado)}</span>
+        </div>
+        <div class="ruta">
+          <span class="punto">📍 ${v.origen}</span>
+          <span class="flecha">→</span>
+          <span class="punto">🏁 ${v.destino}</span>
+        </div>
+        <div class="viaje-meta">👤 ${v.nombre} · 📞 ${v.tel} · ⏰ ${v.hora} · 💶 €${v.precio}</div>
+        ${v.notas?`<div class="viaje-meta">📝 ${v.notas}</div>`:''}
+        <div class="viaje-btns">
+          ${v.estado==='pendiente'?`<button class="btn btn-primary" onclick="estado(${v.id},'en curso')">▶ Iniciar</button>`:''}
+          ${v.estado==='en curso'?`<button class="btn btn-success" onclick="estado(${v.id},'entregado')">✓ Entregado</button>`:''}
+          <button class="btn btn-outline" onclick="mapa('${v.origen}','${v.destino}')">🗺 Ruta</button>
+        </div>
+      </div>
+    `).join('');
+
+  // Repartidor
+  const lr = document.getElementById('lista-rep');
+  const actv = viajes.filter(v=>v.estado!=='entregado');
+  lr.innerHTML = actv.length === 0
+    ? '<div class="empty">Sin viajes pendientes 🎉</div>'
+    : actv.map(v=>`
+      <div class="viaje">
+        <div class="viaje-top">
+          <span class="viaje-id">#${v.id}</span>
+          <span class="badge ${bClass(v.estado)}">${eLabel(v.estado)}</span>
+        </div>
+        <div class="ruta">
+          <span class="punto">📍 ${v.origen}</span>
+          <span class="flecha">→</span>
+          <span class="punto">🏁 ${v.destino}</span>
+        </div>
+        <div class="viaje-meta">👤 ${v.nombre} · 📞 <a href="tel:${v.tel}">${v.tel}</a> · ⏰ ${v.hora}</div>
+        <div class="viaje-btns">
+          ${v.estado==='pendiente'?`<button class="btn btn-primary" onclick="estado(${v.id},'en curso')">▶ Iniciar viaje</button>`:''}
+          ${v.estado==='en curso'?`<button class="btn btn-success" onclick="estado(${v.id},'entregado')">✓ Marcar entregado</button>`:''}
+          <button class="btn btn-outline" onclick="mapa('${v.origen}','${v.destino}')">🗺 Ver ruta</button>
+        </div>
+      </div>
+    `).join('');
+}
+
+// ══ UTILS ══
+function servicioLabel(s){return{lavado:'Lavado básico',planchado:'Lavado+Planchado',express:'Express 24h',premium:'Premium'}[s]||s;}
+function eLabel(s){return{pendiente:'Pendiente','en curso':'En curso',entregado:'Entregado'}[s]||s;}
+function bClass(s){return{pendiente:'b-pending','en curso':'b-active',entregado:'b-done'}[s]||'b-pending';}
+function mostrarModal(t,b){document.getElementById('m-title').textContent=t;document.getElementById('m-body').textContent=b;document.getElementById('modal').classList.add('show');}
+function cerrar(){document.getElementById('modal').classList.remove('show');}
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
+function copiar(tipo){
+  const txt = document.getElementById('enlace-'+tipo).textContent;
+  navigator.clipboard.writeText(txt).then(()=>toast('✅ Enlace copiado'));
+}
+
+init();
+</script>
+</body>
+</html>
