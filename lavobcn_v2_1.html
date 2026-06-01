@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LavoBCN 🧺</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --azul:#2563eb;--azul2:#1d4ed8;--verde:#10b981;--amarillo:#f59e0b;
+  --naranja:#f97316;--rosa:#ec4899;--morado:#8b5cf6;--rojo:#ef4444;
+  --bg:#f0f9ff;--card:#fff;--text:#1e293b;--muted:#64748b;--border:#e2e8f0;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+
+/* NAV */
+nav{background:linear-gradient(135deg,#1e40af,#2563eb,#7c3aed);padding:0 16px;display:flex;align-items:center;justify-content:space-between;height:58px;position:sticky;top:0;z-index:50;box-shadow:0 4px 20px rgba(37,99,235,0.3);}
+.logo{font-weight:900;font-size:22px;color:#fff;display:flex;align-items:center;gap:6px;}
+.logo-sub{font-size:10px;opacity:0.8;font-weight:600;}
+.nav-btns{display:flex;gap:3px;}
+.nb{padding:6px 10px;border-radius:12px;border:none;cursor:pointer;font-family:'Nunito',sans-serif;font-size:11px;font-weight:700;background:rgba(255,255,255,0.15);color:#fff;transition:all .2s;}
+.nb.active{background:#fff;color:var(--azul);}
+
+/* PAGES */
+.page{display:none;padding:16px;max-width:480px;margin:0 auto;padding-bottom:80px;}
+.page.active{display:block;animation:fi .3s ease;}
+@keyframes fi{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* PERSONAJE */
+.personaje-box{text-align:center;padding:20px 16px;margin-bottom:16px;}
+.personaje{font-size:80px;animation:bounce 2s infinite;display:inline-block;filter:drop-shadow(0 8px 16px rgba(0,0,0,0.15));}
+@keyframes bounce{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-12px) rotate(3deg)}}
+.personaje.triste{animation:shake 1s infinite;}
+@keyframes shake{0%,100%{transform:rotate(0)}25%{transform:rotate(-5deg)}75%{transform:rotate(5deg)}}
+.personaje.feliz{animation:spin-bounce 0.8s infinite;}
+@keyframes spin-bounce{0%{transform:scale(1) rotate(0)}50%{transform:scale(1.2) rotate(10deg)}100%{transform:scale(1) rotate(0)}}
+.msg-personaje{font-size:15px;font-weight:700;margin-top:8px;padding:10px 16px;border-radius:20px;display:inline-block;background:#fff;box-shadow:0 4px 12px rgba(0,0,0,0.1);}
+
+/* HERO */
+.hero{background:linear-gradient(135deg,#1e40af,#7c3aed);border-radius:20px;padding:20px;color:#fff;margin-bottom:16px;position:relative;overflow:hidden;}
+.hero::after{content:'🧺';position:absolute;right:-10px;top:-10px;font-size:80px;opacity:0.15;}
+.hero h1{font-size:20px;font-weight:900;margin-bottom:4px;}
+.hero p{font-size:12px;opacity:0.85;margin-bottom:14px;}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.stat{text-align:center;background:rgba(255,255,255,0.15);border-radius:12px;padding:8px 4px;}
+.stat .n{font-size:22px;font-weight:900;}
+.stat .l{font-size:9px;opacity:0.8;text-transform:uppercase;letter-spacing:0.5px;}
+
+/* VIAJE CARD */
+.viaje{background:var(--card);border-radius:18px;padding:16px;border:2px solid var(--border);margin-bottom:12px;transition:all .2s;position:relative;overflow:hidden;}
+.viaje::before{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;border-radius:18px 0 0 18px;}
+.viaje.pendiente::before{background:var(--amarillo);}
+.viaje.en-curso::before{background:var(--verde);}
+.viaje.entregado::before{background:var(--morado);}
+.viaje:hover{box-shadow:0 8px 24px rgba(37,99,235,0.12);transform:translateY(-2px);}
+
+.viaje-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.viaje-id{font-weight:900;font-size:14px;color:var(--azul);}
+.badge{padding:4px 10px;border-radius:20px;font-size:10px;font-weight:800;text-transform:uppercase;}
+.b-pending{background:#fef3c7;color:#92400e;}
+.b-active{background:#d1fae5;color:#065f46;}
+.b-done{background:#ede9fe;color:#5b21b6;}
+
+.ruta{display:flex;align-items:center;gap:8px;margin-bottom:8px;background:#f8fafc;border-radius:12px;padding:10px;}
+.punto{font-size:13px;font-weight:700;flex:1;}
+.flecha{font-size:20px;}
+.viaje-meta{font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6;}
+
+/* EMOJI ESTADO */
+.emoji-estado{font-size:32px;position:absolute;right:16px;top:16px;}
+
+/* BOTONES */
+.btn{padding:9px 16px;border-radius:12px;border:none;cursor:pointer;font-family:'Nunito',sans-serif;font-weight:800;font-size:13px;transition:all .2s;display:inline-flex;align-items:center;gap:6px;}
+.btn:active{transform:scale(0.95);}
+.btn-primary{background:var(--azul);color:#fff;}
+.btn-primary:hover{background:var(--azul2);}
+.btn-success{background:var(--verde);color:#fff;}
+.btn-warning{background:var(--amarillo);color:#fff;}
+.btn-outline{background:transparent;border:2px solid var(--azul);color:var(--azul);}
+.btn-full{width:100%;justify-content:center;font-size:15px;padding:14px;}
+.btn-pink{background:var(--rosa);color:#fff;}
+.btns-row{display:flex;gap:8px;flex-wrap:wrap;}
+
+/* FORM */
+.form-card{background:var(--card);border-radius:20px;padding:20px;border:2px solid var(--border);margin-bottom:16px;}
+.form-card h2{font-size:18px;font-weight:900;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+.fg{display:flex;flex-direction:column;gap:5px;margin-bottom:12px;}
+.fg label{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;}
+.fg input,.fg select,.fg textarea{padding:11px 14px;border:2px solid var(--border);border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:600;color:var(--text);background:#fff;outline:none;transition:border-color .2s;}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--azul);}
+.fg textarea{resize:vertical;min-height:70px;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+/* CALIFICACIÓN */
+.stars{display:flex;gap:6px;font-size:28px;cursor:pointer;justify-content:center;margin:12px 0;}
+.star{transition:transform .2s;}
+.star:hover{transform:scale(1.3);}
+.star.active{filter:drop-shadow(0 0 8px gold);}
+
+/* PROPINA */
+.propina-btns{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0;}
+.prop-btn{padding:8px 14px;border-radius:12px;border:2px solid var(--border);background:#fff;font-family:'Nunito',sans-serif;font-weight:800;font-size:14px;cursor:pointer;transition:all .2s;}
+.prop-btn:hover,.prop-btn.active{background:var(--amarillo);border-color:var(--amarillo);color:#fff;transform:scale(1.05);}
+
+/* ENLACE BOX */
+.enlace-box{background:linear-gradient(135deg,#eff6ff,#f0fdf4);border:2px dashed var(--azul);border-radius:16px;padding:16px;margin-bottom:16px;text-align:center;}
+.enlace-box p{font-size:12px;color:var(--muted);margin-bottom:8px;font-weight:700;}
+.enlace-url{font-size:12px;font-weight:800;color:var(--azul);word-break:break-all;margin-bottom:10px;background:#fff;padding:8px;border-radius:10px;}
+.copy-btn{background:var(--azul);color:#fff;border:none;padding:10px 20px;border-radius:10px;font-family:'Nunito',sans-serif;font-weight:800;font-size:13px;cursor:pointer;}
+
+/* MAPA */
+.mapa-btn{display:flex;align-items:center;gap:8px;background:#f0fdf4;border:2px solid #86efac;border-radius:10px;padding:10px 14px;font-size:13px;font-weight:700;color:#166534;cursor:pointer;text-decoration:none;justify-content:center;margin-top:8px;}
+
+/* LIVE */
+.live{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--verde);font-weight:800;}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--verde);animation:pulse 1.5s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+
+.sec-title{font-size:16px;font-weight:900;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;}
+.empty{text-align:center;padding:32px;color:var(--muted);font-size:14px;font-weight:700;}
+
+/* MODAL */
+.overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,0.6);z-index:100;align-items:center;justify-content:center;padding:20px;}
+.overlay.show{display:flex;}
+.modal{background:#fff;border-radius:24px;padding:28px;max-width:380px;width:100%;animation:fi .3s ease;text-align:center;}
+.modal-emoji{font-size:64px;margin-bottom:12px;display:block;}
+.modal h2{font-size:20px;font-weight:900;margin-bottom:8px;}
+.modal p{color:var(--muted);font-size:14px;margin-bottom:20px;line-height:1.5;font-weight:600;}
+.modal-btns{display:flex;gap:10px;}
+.modal-btns .btn{flex:1;justify-content:center;}
+
+/* CALIFICAR MODAL */
+.cal-section{background:#f8fafc;border-radius:16px;padding:16px;margin-bottom:12px;text-align:center;}
+.cal-section h3{font-size:14px;font-weight:800;margin-bottom:8px;}
+
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);background:#1e293b;color:#fff;padding:12px 20px;border-radius:14px;font-size:13px;font-weight:700;z-index:200;opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap;display:flex;align-items:center;gap:8px;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* BOTTOM NAV */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:2px solid var(--border);display:flex;z-index:40;box-shadow:0 -4px 20px rgba(0,0,0,0.08);}
+.bn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 4px;cursor:pointer;border:none;background:transparent;font-family:'Nunito',sans-serif;font-size:9px;font-weight:800;color:var(--muted);transition:all .2s;gap:3px;}
+.bn.active{color:var(--azul);}
+.bn-icon{font-size:22px;}
+
+/* REPARTIDOR */
+.rep-card{background:linear-gradient(135deg,#1e3a8a,#4f46e5);border-radius:20px;padding:20px;color:#fff;margin-bottom:16px;display:flex;align-items:center;gap:16px;}
+.rep-avatar{width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;}
+.rep-name{font-size:18px;font-weight:900;}
+.rep-sub{font-size:12px;opacity:0.8;font-weight:600;}
+.rep-stats{display:flex;gap:12px;margin-top:8px;}
+.rep-stat{text-align:center;}
+.rep-stat .n{font-size:20px;font-weight:900;}
+.rep-stat .l{font-size:9px;opacity:0.7;}
+
+/* VIDEO DEMO */
+.video-card{background:linear-gradient(135deg,#1e293b,#334155);border-radius:20px;padding:24px;color:#fff;margin-bottom:16px;text-align:center;}
+.video-card h2{font-size:18px;font-weight:900;margin-bottom:8px;}
+.video-card p{font-size:13px;opacity:0.8;margin-bottom:16px;line-height:1.5;}
+.play-btn{width:72px;height:72px;border-radius:50%;background:var(--rosa);display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 16px;cursor:pointer;animation:pulse-ring 2s infinite;border:none;}
+@keyframes pulse-ring{0%{box-shadow:0 0 0 0 rgba(236,72,153,0.4)}70%{box-shadow:0 0 0 20px rgba(236,72,153,0)}100%{box-shadow:0 0 0 0 rgba(236,72,153,0)}}
+.feature-list{display:grid;grid-template-columns:1fr 1fr;gap:8px;text-align:left;}
+.feature{background:rgba(255,255,255,0.1);border-radius:12px;padding:10px;font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;}
+
+@media(max-width:380px){
+  .stats{grid-template-columns:repeat(2,1fr);}
+  .row2{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">🧺 LavoBCN <span class="logo-sub">BCN</span></div>
+  <div class="nav-btns">
+    <button class="nb active" onclick="pg('admin',0)">🛠</button>
+    <button class="nb" onclick="pg('nuevo',1)">➕</button>
+    <button class="nb" onclick="pg('rep',2)">🛵</button>
+    <button class="nb" onclick="pg('demo',3)">🎬</button>
+  </div>
+</nav>
+
+<!-- ══════════ ADMIN ══════════ -->
+<div class="page active" id="page-admin">
+
+  <div class="personaje-box">
+    <div class="personaje" id="mascota">🧑‍🦱</div>
+    <div class="msg-personaje" id="msg-mascota">¡Hola Jeffrey! Listo para gestionar 🚀</div>
+  </div>
+
+  <div class="hero">
+    <div class="live"><div class="dot"></div> En vivo ahora</div>
+    <h1>Panel LavoBCN 🧺</h1>
+    <p>Jeffrey Guerra — Control total desde aquí</p>
+    <div class="stats">
+      <div class="stat"><div class="n" id="st">0</div><div class="l">Total</div></div>
+      <div class="stat"><div class="n" id="sa">0</div><div class="l">En curso</div></div>
+      <div class="stat"><div class="n" id="se">0</div><div class="l">Listos</div></div>
+      <div class="stat"><div class="n" id="si">€0</div><div class="l">Ingresos</div></div>
+    </div>
+  </div>
+
+  <div class="enlace-box">
+    <p>🔗 Comparte con clientes por WhatsApp</p>
+    <div class="enlace-url" id="enlace-cliente">https://jeffrey3184-png.github.io/lavobcn/lavobcn_viajes.html</div>
+    <button class="copy-btn" onclick="copiar()">📋 Copiar enlace</button>
+  </div>
+
+  <div class="sec-title">Viajes activos <span class="live"><div class="dot"></div></span></div>
+  <div id="lista-admin"></div>
+</div>
+
+<!-- ══════════ NUEVO VIAJE ══════════ -->
+<div class="page" id="page-nuevo">
+  <div class="form-card">
+    <h2>➕ Nuevo viaje</h2>
+    <div class="fg">
+      <label>Nombre del cliente</label>
+      <input type="text" id="n-nombre" placeholder="Nombre completo">
+    </div>
+    <div class="fg">
+      <label>Teléfono</label>
+      <input type="tel" id="n-tel" placeholder="+34 600 000 000">
+    </div>
+    <div class="row2">
+      <div class="fg">
+        <label>Origen</label>
+        <select id="n-origen">
+          <option>Hotel Vinci Vit</option>
+          <option>Hotel Vinci Marítimo</option>
+          <option>Mar Arreglos</option>
+          <option>Prim</option>
+          <option>Perfec</option>
+          <option>Tiente</option>
+          <option>Otro</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Destino</label>
+        <select id="n-destino">
+          <option>Perfec</option>
+          <option>Prim</option>
+          <option>Tiente</option>
+          <option>Hotel Vinci Vit</option>
+          <option>Hotel Vinci Marítimo</option>
+          <option>Mar Arreglos</option>
+          <option>Otro</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg">
+      <label>Servicio</label>
+      <select id="n-servicio">
+        <option value="lavado">🧼 Lavado básico — €12</option>
+        <option value="planchado">👔 Lavado + Planchado — €20</option>
+        <option value="express">⚡ Express 24h — €28</option>
+        <option value="premium">⭐ Premium completo — €40</option>
+      </select>
+    </div>
+    <div class="fg">
+      <label>Notas</label>
+      <textarea id="n-notas" placeholder="Ropa delicada, instrucciones especiales..."></textarea>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="crearViaje()">✅ Crear viaje ahora</button>
+  </div>
+</div>
+
+<!-- ══════════ REPARTIDOR ══════════ -->
+<div class="page" id="page-rep">
+  <div class="rep-card">
+    <div class="rep-avatar">🛵</div>
+    <div>
+      <div class="rep-name">Jeffrey Guerra</div>
+      <div class="rep-sub">Repartidor principal · Barcelona</div>
+      <div class="rep-stats">
+        <div class="rep-stat"><div class="n" id="r-viajes">0</div><div class="l">viajes</div></div>
+        <div class="rep-stat"><div class="n" id="r-propinas">€0</div><div class="l">propinas</div></div>
+        <div class="rep-stat"><div class="n" id="r-stars">⭐0</div><div class="l">rating</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec-title">Mis entregas</div>
+  <div id="lista-rep"></div>
+</div>
+
+<!-- ══════════ DEMO / VIDEO ══════════ -->
+<div class="page" id="page-demo">
+  <div class="video-card">
+    <h2>🎬 ¿Cómo funciona LavoBCN?</h2>
+    <p>La app de lavandería más sencilla de Barcelona. Gestiona recogidas, entregas y pagos desde tu móvil.</p>
+    <button class="play-btn" onclick="verDemo()">▶</button>
+    <div class="feature-list">
+      <div class="feature">📍 Ubicación en tiempo real</div>
+      <div class="feature">📱 Funciona en móvil</div>
+      <div class="feature">⭐ Sistema de ratings</div>
+      <div class="feature">💰 Propinas digitales</div>
+      <div class="feature">🗺 Rutas con Google Maps</div>
+      <div class="feature">📞 Llamada directa</div>
+      <div class="feature">🔔 Notificaciones</div>
+      <div class="feature">🧺 2 lavanderías</div>
+    </div>
+  </div>
+
+  <div class="form-card">
+    <h2>📍 Lavanderías</h2>
+    <a class="mapa-btn" href="https://maps.google.com/?q=Maresme+60+Barcelona" target="_blank">🗺 Prim — Maresme 60, Barcelona</a>
+    <a class="mapa-btn" href="https://maps.google.com/?q=Perfec+lavanderia+Barcelona" target="_blank">🗺 Perfec — Barcelona</a>
+    <a class="mapa-btn" href="https://maps.google.com/?q=Hotel+Vinci+Vit+Barcelona" target="_blank">🗺 Hotel Vinci Vit — Barcelona</a>
+    <a class="mapa-btn" href="https://maps.google.com/?q=Hotel+Vinci+Maritimo+Barcelona" target="_blank">🗺 Hotel Vinci Marítimo — Barcelona</a>
+  </div>
+
+  <div class="form-card">
+    <h2>💰 Cómo funciona el negocio</h2>
+    <div style="font-size:13px;line-height:1.8;color:var(--muted);font-weight:600;">
+      <p>🧺 <strong>Cliente</strong> paga el servicio (€12-€40)</p>
+      <p>🛵 <strong>Repartidor</strong> recibe % por entrega</p>
+      <p>⭐ <strong>Propinas</strong> van directo al repartidor</p>
+      <p>📊 <strong>Jeffrey</strong> gestiona todo desde el panel</p>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CALIFICACIÓN -->
+<div class="overlay" id="modal-cal">
+  <div class="modal">
+    <span class="modal-emoji">⭐</span>
+    <h2>¡Califica el servicio!</h2>
+    <p>Tu opinión mejora el servicio para todos</p>
+    <div class="cal-section">
+      <h3>🛵 Repartidor</h3>
+      <div class="stars" id="stars-rep">
+        <span class="star" onclick="calificar('rep',1)">⭐</span>
+        <span class="star" onclick="calificar('rep',2)">⭐</span>
+        <span class="star" onclick="calificar('rep',3)">⭐</span>
+        <span class="star" onclick="calificar('rep',4)">⭐</span>
+        <span class="star" onclick="calificar('rep',5)">⭐</span>
+      </div>
+    </div>
+    <div class="cal-section">
+      <h3>🧺 Lavandería</h3>
+      <div class="stars" id="stars-lav">
+        <span class="star" onclick="calificar('lav',1)">⭐</span>
+        <span class="star" onclick="calificar('lav',2)">⭐</span>
+        <span class="star" onclick="calificar('lav',3)">⭐</span>
+        <span class="star" onclick="calificar('lav',4)">⭐</span>
+        <span class="star" onclick="calificar('lav',5)">⭐</span>
+      </div>
+    </div>
+    <div class="cal-section">
+      <h3>💰 Dejar propina al repartidor</h3>
+      <div class="propina-btns" id="propina-btns">
+        <button class="prop-btn" onclick="setPropina(1)">€1</button>
+        <button class="prop-btn" onclick="setPropina(2)">€2</button>
+        <button class="prop-btn" onclick="setPropina(5)">€5</button>
+        <button class="prop-btn" onclick="setPropina(10)">€10</button>
+        <button class="prop-btn" onclick="setPropina(0)">Sin propina</button>
+      </div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-primary" onclick="enviarCal()">✅ Enviar</button>
+      <button class="btn btn-outline" onclick="cerrarCal()">Omitir</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL GENERAL -->
+<div class="overlay" id="modal">
+  <div class="modal">
+    <span class="modal-emoji" id="m-emoji">✅</span>
+    <h2 id="m-title">Listo</h2>
+    <p id="m-body"></p>
+    <div class="modal-btns">
+      <button class="btn btn-primary" onclick="cerrar()">Entendido 👍</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══ ESTADO ══
+const PRECIOS = {lavado:12,planchado:20,express:28,premium:40};
+let viajes = [];
+let nid = 2001;
+let calActual = {rep:0, lav:0, propina:0, viajeId:null};
+let totalPropinas = 0;
+let totalStars = 0;
+let numCals = 0;
+
+// ══ PERSONAJES POR ESTADO ══
+const ESTADOS_MASCOTA = {
+  sinViajes: {emoji:'😴', msg:'Sin viajes por ahora... zzz'},
+  conPendientes: {emoji:'🤔', msg:'Hay viajes pendientes, ¡a trabajar!'},
+  enCurso: {emoji:'🏃‍♂️', msg:'¡Estamos en marcha! 🚀'},
+  propina: {emoji:'🤑', msg:'¡Propina recibida! ¡Gracias! 💰'},
+  sinPropina: {emoji:'😢', msg:'Sin propina... siempre se agradece 😅'},
+  entregado: {emoji:'🎉', msg:'¡Entrega completada! ¡Genial!'},
+};
+
+// ══ VIAJES INICIALES ══
+function init() {
+  viajes = [
+    {id:2001,nombre:'Jeffrey',tel:'+34 600 000 001',origen:'Hotel Vinci Vit',destino:'Perfec',servicio:'lavado',notas:'Arreglos hotel',precio:12,estado:'entregado',hora:'09:00',propina:2,calRep:5,calLav:4},
+    {id:2002,nombre:'Jeffrey',tel:'+34 600 000 001',origen:'Hotel Vinci Marítimo',destino:'Perfec',servicio:'lavado',notas:'',precio:12,estado:'entregado',hora:'09:30',propina:0,calRep:4,calLav:5},
+    {id:2003,nombre:'Jeffrey',tel:'+34 600 000 001',origen:'Mar Arreglos',destino:'Perfec',servicio:'lavado',notas:'',precio:12,estado:'en curso',hora:'10:00',propina:0,calRep:0,calLav:0},
+    {id:2004,nombre:'Jeffrey',tel:'+34 600 000 001',origen:'Prim',destino:'Perfec',servicio:'lavado',notas:'',precio:12,estado:'pendiente',hora:'10:30',propina:0,calRep:0,calLav:0},
+    {id:2005,nombre:'Jeffrey',tel:'+34 600 000 001',origen:'Perfec',destino:'Prim',servicio:'lavado',notas:'',precio:12,estado:'pendiente',hora:'11:00',propina:0,calRep:0,calLav:0},
+    {id:2006,nombre:'Jeffrey',tel:'+34 600 000 001',origen:'Perfec',destino:'Tiente',servicio:'lavado',notas:'',precio:12,estado:'pendiente',hora:'11:30',propina:0,calRep:0,calLav:0},
+  ];
+  nid = 2007;
+  totalPropinas = 2;
+  render();
+}
+
+// ══ NAVEGACIÓN ══
+function pg(p, idx) {
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.nb').forEach(x=>x.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  document.querySelectorAll('.nb')[idx].classList.add('active');
+  render();
+}
+
+// ══ CREAR VIAJE ══
+function crearViaje() {
+  const nombre = document.getElementById('n-nombre').value.trim();
+  const tel = document.getElementById('n-tel').value.trim();
+  const origen = document.getElementById('n-origen').value;
+  const destino = document.getElementById('n-destino').value;
+  const servicio = document.getElementById('n-servicio').value;
+  const notas = document.getElementById('n-notas').value.trim();
+
+  if(!nombre||!tel){toast('⚠️ Nombre y teléfono obligatorios');return;}
+
+  const v = {id:nid++,nombre,tel,origen,destino,servicio,notas,precio:PRECIOS[servicio],estado:'pendiente',hora:new Date().toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'}),propina:0,calRep:0,calLav:0};
+  viajes.push(v);
+  ['n-nombre','n-tel','n-notas'].forEach(id=>document.getElementById(id).value='');
+  mostrarModal('✅','¡Viaje #'+v.id+' creado!',`${nombre}\n${origen} → ${destino}\n€${v.precio} — Asignado a Jeffrey`);
+  actualizarMascota();
+  render();
+}
+
+// ══ CAMBIAR ESTADO ══
+function cambiarEstado(id, e) {
+  const v = viajes.find(x=>x.id===id);
+  if(!v) return;
+  v.estado = e;
+  if(e === 'entregado') {
+    calActual.viajeId = id;
+    setTimeout(()=>document.getElementById('modal-cal').classList.add('show'), 500);
+  }
+  actualizarMascota();
+  render();
+  toast(eEmoji(e)+' Viaje #'+id+' — '+eLabel(e));
+}
+
+// ══ CALIFICACIÓN ══
+function calificar(tipo, n) {
+  calActual[tipo] = n;
+  const id = tipo==='rep'?'stars-rep':'stars-lav';
+  document.querySelectorAll('#'+id+' .star').forEach((s,i)=>{
+    s.style.opacity = i<n ? '1' : '0.3';
+    s.style.transform = i<n ? 'scale(1.1)' : 'scale(1)';
+  });
+}
+
+function setPropina(n) {
+  calActual.propina = n;
+  document.querySelectorAll('.prop-btn').forEach(b=>{
+    b.classList.toggle('active', b.textContent === (n===0?'Sin propina':'€'+n));
+  });
+  if(n > 0) {
+    actualizarMascotaDirecto('propina');
+  } else {
+    actualizarMascotaDirecto('sinPropina');
+  }
+}
+
+function enviarCal() {
+  const v = viajes.find(x=>x.id===calActual.viajeId);
+  if(v) {
+    v.calRep = calActual.rep||5;
+    v.calLav = calActual.lav||5;
+    v.propina = calActual.propina;
+    totalPropinas += calActual.propina;
+    numCals++;
+    totalStars += calActual.rep||5;
+  }
+  cerrarCal();
+  calActual = {rep:0,lav:0,propina:0,viajeId:null};
+  if(v && v.propina > 0) {
+    actualizarMascotaDirecto('propina');
+    toast('🤑 ¡Propina de €'+v.propina+' recibida! ¡Gracias!');
+  } else {
+    actualizarMascotaDirecto('sinPropina');
+    toast('⭐ Calificación enviada');
+  }
+  render();
+}
+
+function cerrarCal() {
+  document.getElementById('modal-cal').classList.remove('show');
+  document.querySelectorAll('.star').forEach(s=>{s.style.opacity='1';s.style.transform='scale(1)';});
+  document.querySelectorAll('.prop-btn').forEach(b=>b.classList.remove('active'));
+}
+
+// ══ MASCOTA ══
+function actualizarMascota() {
+  const pendientes = viajes.filter(v=>v.estado==='pendiente').length;
+  const enCurso = viajes.filter(v=>v.estado==='en curso').length;
+  let estado = 'sinViajes';
+  if(enCurso > 0) estado = 'enCurso';
+  else if(pendientes > 0) estado = 'conPendientes';
+  const m = ESTADOS_MASCOTA[estado];
+  document.getElementById('mascota').textContent = m.emoji;
+  document.getElementById('msg-mascota').textContent = m.msg;
+  document.getElementById('mascota').className = 'personaje ' + (estado==='enCurso'?'feliz':estado==='sinViajes'?'triste':'');
+}
+
+function actualizarMascotaDirecto(estado) {
+  const m = ESTADOS_MASCOTA[estado];
+  if(!m) return;
+  document.getElementById('mascota').textContent = m.emoji;
+  document.getElementById('msg-mascota').textContent = m.msg;
+  document.getElementById('mascota').className = 'personaje ' + (estado==='propina'?'feliz':'triste');
+}
+
+// ══ RENDER ══
+function render() {
+  const total = viajes.length;
+  const activos = viajes.filter(v=>v.estado==='en curso').length;
+  const entregados = viajes.filter(v=>v.estado==='entregado').length;
+  const ingresos = viajes.filter(v=>v.estado==='entregado').reduce((s,v)=>s+v.precio,0);
+
+  document.getElementById('st').textContent = total;
+  document.getElementById('sa').textContent = activos;
+  document.getElementById('se').textContent = entregados;
+  document.getElementById('si').textContent = '€'+ingresos;
+
+  // Repartidor stats
+  document.getElementById('r-viajes').textContent = entregados;
+  document.getElementById('r-propinas').textContent = '€'+totalPropinas;
+  document.getElementById('r-stars').textContent = '⭐'+(numCals>0?(totalStars/numCals).toFixed(1):'5.0');
+
+  renderAdmin();
+  renderRep();
+  actualizarMascota();
+}
+
+function viajeHTML(v, esRep=false) {
+  const emojiEstado = {pendiente:'⏳',  'en curso':'🚀', entregado:'✅'}[v.estado]||'📦';
+  const estrellas = v.calRep > 0 ? '⭐'.repeat(v.calRep) : '';
+  const propStr = v.propina > 0 ? `💰 Propina: €${v.propina}` : '';
+  return `
+    <div class="viaje ${v.estado.replace(' ','-')}">
+      <span class="emoji-estado">${emojiEstado}</span>
+      <div class="viaje-header">
+        <span class="viaje-id">#${v.id}</span>
+        <span class="badge ${bClass(v.estado)}">${eLabel(v.estado)}</span>
+      </div>
+      <div class="ruta">
+        <span class="punto">📍 ${v.origen}</span>
+        <span class="flecha">→</span>
+        <span class="punto">🏁 ${v.destino}</span>
+      </div>
+      <div class="viaje-meta">
+        👤 ${v.nombre} · 📞 <a href="tel:${v.tel}">${v.tel}</a><br>
+        ⏰ ${v.hora} · 💶 €${v.precio}
+        ${estrellas ? '<br>'+estrellas : ''}
+        ${propStr ? '<br>'+propStr : ''}
+        ${v.notas ? '<br>📝 '+v.notas : ''}
+      </div>
+      <div class="btns-row">
+        ${!esRep && v.estado==='pendiente' ? `<button class="btn btn-primary" onclick="cambiarEstado(${v.id},'en curso')">▶ Iniciar</button>` : ''}
+        ${v.estado==='en curso' ? `<button class="btn btn-success" onclick="cambiarEstado(${v.id},'entregado')">✓ Entregado</button>` : ''}
+        <a class="btn btn-outline" href="https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(v.origen+' Barcelona')}&destination=${encodeURIComponent(v.destino+' Barcelona')}" target="_blank">🗺 Ruta</a>
+        ${v.estado==='entregado' && v.calRep===0 ? `<button class="btn btn-pink" onclick="abrirCal(${v.id})">⭐ Calificar</button>` : ''}
+      </div>
+    </div>`;
+}
+
+function renderAdmin() {
+  const la = document.getElementById('lista-admin');
+  la.innerHTML = viajes.length === 0
+    ? '<div class="empty">😴 Sin viajes registrados aún</div>'
+    : viajes.slice().reverse().map(v=>viajeHTML(v)).join('');
+}
+
+function renderRep() {
+  const lr = document.getElementById('lista-rep');
+  const actv = viajes.filter(v=>v.estado!=='entregado');
+  lr.innerHTML = actv.length === 0
+    ? '<div class="empty">🎉 ¡Sin entregas pendientes!</div>'
+    : actv.map(v=>viajeHTML(v,true)).join('');
+}
+
+// ══ UTILS ══
+function eLabel(s){return{pendiente:'Pendiente','en curso':'En curso',entregado:'Entregado'}[s]||s;}
+function eEmoji(s){return{pendiente:'⏳','en curso':'🚀',entregado:'✅'}[s]||'📦';}
+function bClass(s){return{pendiente:'b-pending','en curso':'b-active',entregado:'b-done'}[s]||'b-pending';}
+
+function abrirCal(id) {
+  calActual.viajeId = id;
+  document.getElementById('modal-cal').classList.add('show');
+}
+
+function mostrarModal(emoji,t,b) {
+  document.getElementById('m-emoji').textContent = emoji;
+  document.getElementById('m-title').textContent = t;
+  document.getElementById('m-body').textContent = b;
+  document.getElementById('modal').classList.add('show');
+}
+function cerrar(){document.getElementById('modal').classList.remove('show');}
+
+function toast(m) {
+  const t=document.getElementById('toast');
+  t.textContent=m;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3500);
+}
+
+function copiar() {
+  const txt = document.getElementById('enlace-cliente').textContent;
+  navigator.clipboard.writeText(txt).then(()=>toast('✅ Enlace copiado — ¡compártelo por WhatsApp!'));
+}
+
+function verDemo() {
+  mostrarModal('🎬','¿Cómo funciona LavoBCN?',
+    '1️⃣ Creas un viaje con el teléfono del cliente\n2️⃣ Jeffrey recoge la ropa\n3️⃣ La lavandería la procesa\n4️⃣ Jeffrey la entrega\n5️⃣ El cliente califica y deja propina\n\n¡Todo desde el móvil! 📱');
+}
+
+init();
+</script>
+</body>
+</html>
