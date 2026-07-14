@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#0d1117">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>LavoBCN</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+    background:#0d1117;color:#e7edf3;min-height:100vh;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;padding:28px;}
+  .logo{font-size:54px;margin-bottom:10px;}
+  h1{font-size:32px;font-weight:900;letter-spacing:-.5px;}
+  h1 span{color:#E85D04;}
+  .sub{color:#7a8694;font-size:14px;margin-top:6px;margin-bottom:34px;text-align:center;}
+  .paso{display:none;width:100%;max-width:380px;flex-direction:column;align-items:center;}
+  .paso.on{display:flex;}
+  .acc{display:flex;flex-direction:column;gap:14px;width:100%;}
+  a.card,.card{display:flex;align-items:center;gap:16px;background:#161b22;border:1px solid #232c39;
+    border-radius:18px;padding:18px 20px;text-decoration:none;color:#e7edf3;transition:transform .12s,border-color .15s;cursor:pointer;}
+  a.card:active,.card:active{transform:scale(.98);}
+  a.card:hover,.card:hover{border-color:#10b981;}
+  .ci{font-size:30px;flex-shrink:0;}
+  .ct{flex:1;}
+  .ct .t{font-size:17px;font-weight:800;}
+  .ct .d{font-size:12.5px;color:#7a8694;margin-top:3px;}
+  .ar{color:#566173;font-size:22px;}
+  .foot{margin-top:36px;color:#566173;font-size:12px;text-align:center;}
+
+  .tel-row{display:flex;gap:8px;width:100%;margin-bottom:14px;}
+  .pais-sel{display:flex;align-items:center;gap:6px;background:#161b22;border:1px solid #232c39;
+    border-radius:12px;padding:0 12px;cursor:pointer;flex-shrink:0;min-width:88px;}
+  .pais-sel .bandera{font-size:20px;}
+  .pais-sel .cod{font-size:14px;color:#94a3b8;font-weight:700;}
+  .tel-inp{flex:1;background:#161b22;border:1px solid #232c39;border-radius:12px;padding:14px;
+    color:#fff;font-size:16px;font-family:inherit;outline:none;min-width:0;}
+  .btn-grande{width:100%;padding:15px;border-radius:12px;background:#10b981;border:none;
+    color:#04241a;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;margin-top:4px;}
+  .btn-ghost{width:100%;padding:13px;border-radius:12px;background:none;border:1px solid #232c39;
+    color:#7a8694;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:10px;}
+  .paso-tit{font-size:20px;font-weight:900;text-align:center;margin-bottom:8px;}
+  .paso-sub{font-size:13px;color:#7a8694;text-align:center;margin-bottom:24px;line-height:1.5;}
+
+  .pais-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:900;
+    align-items:flex-end;justify-content:center;}
+  .pais-ov.on{display:flex;}
+  .pais-box{width:100%;max-width:430px;height:75vh;background:#0d1117;border-radius:22px 22px 0 0;
+    display:flex;flex-direction:column;overflow:hidden;}
+  .pais-buscar{padding:16px;border-bottom:1px solid #232c39;flex-shrink:0;}
+  .pais-buscar input{width:100%;padding:12px 14px;border-radius:10px;background:#161b22;
+    border:1px solid #232c39;color:#fff;font-size:14px;font-family:inherit;outline:none;}
+  .pais-lista{flex:1;overflow-y:auto;padding:8px 0;}
+  .pais-item{display:flex;align-items:center;gap:12px;padding:13px 18px;cursor:pointer;}
+  .pais-item:active{background:#161b22;}
+  .pais-item .bandera{font-size:22px;}
+  .pais-item .nombre{flex:1;font-size:14px;}
+  .pais-item .codigo{font-size:13px;color:#7a8694;}
+
+  .instalar-paso{background:#161b22;border:1px solid #232c39;border-radius:14px;padding:16px;
+    margin-bottom:12px;width:100%;font-size:13px;line-height:1.6;}
+  .instalar-paso b{color:#10b981;}
+</style>
+</head>
+<body>
+  <div style="width:72px;height:72px;border-radius:50%;background:#E85D04;display:flex;
+    align-items:center;justify-content:center;font-size:22px;font-weight:900;color:#fff;font-family:Georgia,serif;margin-bottom:14px;">Lavo</div>
+  <h1>Lavo<span>BCN</span></h1>
+  <div class="sub">Tu ciudad, a tu puerta · Barcelona</div>
+
+  <!-- PASO 1: TELÉFONO -->
+  <div class="paso on" id="paso-telefono">
+    <div class="paso-tit">¿Cuál es tu número?</div>
+    <div class="paso-sub">Lo usamos para avisarte sobre tus pedidos.</div>
+    <div class="tel-row">
+      <div class="pais-sel" onclick="abrirPaises()">
+        <span class="bandera" id="bandera-actual">🇪🇸</span>
+        <span class="cod" id="cod-actual">+34</span>
+      </div>
+      <input class="tel-inp" id="tel-input" type="tel" placeholder="600 000 000" inputmode="numeric">
+    </div>
+    <button class="btn-grande" onclick="guardarTelefono()">Continuar</button>
+  </div>
+
+  <!-- PASO 2: NOTIFICACIONES -->
+  <div class="paso" id="paso-notif">
+    <div style="font-size:48px;margin-bottom:14px;">🔔</div>
+    <div class="paso-tit">Activa los avisos</div>
+    <div class="paso-sub">Así sabrás al instante cuándo tu pedido está en camino o listo.</div>
+    <button class="btn-grande" onclick="activarNotifBienvenida()">Activar avisos</button>
+    <button class="btn-ghost" onclick="irPasoInstalar()">Ahora no</button>
+  </div>
+
+  <!-- PASO 3: INSTALAR -->
+  <div class="paso" id="paso-instalar">
+    <div style="font-size:48px;margin-bottom:14px;">📲</div>
+    <div class="paso-tit">Instala LavoBCN</div>
+    <div class="paso-sub">Así la abres como una app normal, sin buscarla cada vez.</div>
+    <div id="instrucciones-instalar"></div>
+    <button class="btn-grande" onclick="irPasoRoles()">Listo, continuar</button>
+  </div>
+
+  <!-- PASO 4: ROLES -->
+  <div class="paso" id="paso-roles">
+    <div class="acc">
+      <a class="card" href="cliente.html">
+        <span class="ci">📱</span>
+        <span class="ct"><div class="t">Soy cliente</div><div class="d">Pedir lavandería · Moto · Mensajería</div></span>
+        <span class="ar">›</span>
+      </a>
+      <a class="card" href="rider.html">
+        <span class="ci">🛵</span>
+        <span class="ct"><div class="t">Soy repartidor</div><div class="d">Recibir pedidos · Gestionar entregas</div></span>
+        <span class="ar">›</span>
+      </a>
+      <a class="card" href="admin.html">
+        <span class="ci">⚙️</span>
+        <span class="ct"><div class="t">Administración</div><div class="d">Panel de control · Pedidos · Riders</div></span>
+        <span class="ar">›</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="foot">LavoBCN · Barcelona 2025 · Startup</div>
+
+  <!-- SELECTOR DE PAÍS -->
+  <div class="pais-ov" id="pais-ov">
+    <div class="pais-box">
+      <div class="pais-buscar"><input type="text" id="buscar-pais" placeholder="Buscar país..." oninput="filtrarPaises()"></div>
+      <div class="pais-lista" id="lista-paises"></div>
+    </div>
+  </div>
+
+<script>
+var PAISES = [{n:"España",f:"🇪🇸",c:"34"},{n:"Marruecos",f:"🇲🇦",c:"212"},{n:"Pakistán",f:"🇵🇰",c:"92"},{n:"India",f:"🇮🇳",c:"91"},{n:"Bangladés",f:"🇧🇩",c:"880"},{n:"Senegal",f:"🇸🇳",c:"221"},{n:"Nigeria",f:"🇳🇬",c:"234"},{n:"Argelia",f:"🇩🇿",c:"213"},{n:"Francia",f:"🇫🇷",c:"33"},{n:"Italia",f:"🇮🇹",c:"39"},{n:"Portugal",f:"🇵🇹",c:"351"},{n:"Alemania",f:"🇩🇪",c:"49"},{n:"Reino Unido",f:"🇬🇧",c:"44"},{n:"Rumanía",f:"🇷🇴",c:"40"},{n:"Bulgaria",f:"🇧🇬",c:"359"},{n:"Polonia",f:"🇵🇱",c:"48"},{n:"Ucrania",f:"🇺🇦",c:"380"},{n:"Rusia",f:"🇷🇺",c:"7"},{n:"China",f:"🇨🇳",c:"86"},{n:"Filipinas",f:"🇵🇭",c:"63"},{n:"Honduras",f:"🇭🇳",c:"504"},{n:"Colombia",f:"🇨🇴",c:"57"},{n:"Venezuela",f:"🇻🇪",c:"58"},{n:"Ecuador",f:"🇪🇨",c:"593"},{n:"Perú",f:"🇵🇪",c:"51"},{n:"Bolivia",f:"🇧🇴",c:"591"},{n:"Argentina",f:"🇦🇷",c:"54"},{n:"Chile",f:"🇨🇱",c:"56"},{n:"Uruguay",f:"🇺🇾",c:"598"},{n:"Paraguay",f:"🇵🇾",c:"595"},{n:"Brasil",f:"🇧🇷",c:"55"},{n:"México",f:"🇲🇽",c:"52"},{n:"Cuba",f:"🇨🇺",c:"53"},{n:"República Dominicana",f:"🇩🇴",c:"1"},{n:"Guatemala",f:"🇬🇹",c:"502"},{n:"El Salvador",f:"🇸🇻",c:"503"},{n:"Nicaragua",f:"🇳🇮",c:"505"},{n:"Costa Rica",f:"🇨🇷",c:"506"},{n:"Panamá",f:"🇵🇦",c:"507"},{n:"Estados Unidos",f:"🇺🇸",c:"1"},{n:"Canadá",f:"🇨🇦",c:"1"},{n:"Egipto",f:"🇪🇬",c:"20"},{n:"Túnez",f:"🇹🇳",c:"216"},{n:"Libia",f:"🇱🇾",c:"218"},{n:"Mali",f:"🇲🇱",c:"223"},{n:"Mauritania",f:"🇲🇷",c:"222"},{n:"Gambia",f:"🇬🇲",c:"220"},{n:"Guinea",f:"🇬🇳",c:"224"},{n:"Guinea-Bisáu",f:"🇬🇼",c:"245"},{n:"Costa de Marfil",f:"🇨🇮",c:"225"},{n:"Ghana",f:"🇬🇭",c:"233"},{n:"Camerún",f:"🇨🇲",c:"237"},{n:"Sudáfrica",f:"🇿🇦",c:"27"},{n:"Kenia",f:"🇰🇪",c:"254"},{n:"Etiopía",f:"🇪🇹",c:"251"},{n:"Somalia",f:"🇸🇴",c:"252"},{n:"Sudán",f:"🇸🇩",c:"249"},{n:"Siria",f:"🇸🇾",c:"963"},{n:"Líbano",f:"🇱🇧",c:"961"},{n:"Jordania",f:"🇯🇴",c:"962"},{n:"Irak",f:"🇮🇶",c:"964"},{n:"Irán",f:"🇮🇷",c:"98"},{n:"Arabia Saudita",f:"🇸🇦",c:"966"},{n:"Emiratos Árabes Unidos",f:"🇦🇪",c:"971"},{n:"Catar",f:"🇶🇦",c:"974"},{n:"Kuwait",f:"🇰🇼",c:"965"},{n:"Yemen",f:"🇾🇪",c:"967"},{n:"Afganistán",f:"🇦🇫",c:"93"},{n:"Sri Lanka",f:"🇱🇰",c:"94"},{n:"Nepal",f:"🇳🇵",c:"977"},{n:"Indonesia",f:"🇮🇩",c:"62"},{n:"Malasia",f:"🇲🇾",c:"60"},{n:"Tailandia",f:"🇹🇭",c:"66"},{n:"Vietnam",f:"🇻🇳",c:"84"},{n:"Japón",f:"🇯🇵",c:"81"},{n:"Corea del Sur",f:"🇰🇷",c:"82"},{n:"Países Bajos",f:"🇳🇱",c:"31"},{n:"Bélgica",f:"🇧🇪",c:"32"},{n:"Suiza",f:"🇨🇭",c:"41"},{n:"Austria",f:"🇦🇹",c:"43"},{n:"Grecia",f:"🇬🇷",c:"30"},{n:"Suecia",f:"🇸🇪",c:"46"},{n:"Noruega",f:"🇳🇴",c:"47"},{n:"Dinamarca",f:"🇩🇰",c:"45"},{n:"Finlandia",f:"🇫🇮",c:"358"},{n:"Irlanda",f:"🇮🇪",c:"353"},{n:"Croacia",f:"🇭🇷",c:"385"},{n:"Serbia",f:"🇷🇸",c:"381"},{n:"Bosnia y Herzegovina",f:"🇧🇦",c:"387"},{n:"Albania",f:"🇦🇱",c:"355"},{n:"Moldavia",f:"🇲🇩",c:"373"},{n:"Georgia",f:"🇬🇪",c:"995"},{n:"Armenia",f:"🇦🇲",c:"374"},{n:"Azerbaiyán",f:"🇦🇿",c:"994"},{n:"Kazajistán",f:"🇰🇿",c:"7"},{n:"Uzbekistán",f:"🇺🇿",c:"998"},{n:"Turquía",f:"🇹🇷",c:"90"},{n:"Israel",f:"🇮🇱",c:"972"},{n:"Palestina",f:"🇵🇸",c:"970"},{n:"Australia",f:"🇦🇺",c:"61"},{n:"Nueva Zelanda",f:"🇳🇿",c:"64"},{n:"Angola",f:"🇦🇴",c:"244"},{n:"Mozambique",f:"🇲🇿",c:"258"},{n:"Congo (RDC)",f:"🇨🇩",c:"243"},{n:"Cabo Verde",f:"🇨🇻",c:"238"},{n:"Haití",f:"🇭🇹",c:"509"},{n:"Jamaica",f:"🇯🇲",c:"1"},{n:"Trinidad y Tobago",f:"🇹🇹",c:"1"},{n:"Hungría",f:"🇭🇺",c:"36"},{n:"República Checa",f:"🇨🇿",c:"420"},{n:"Eslovaquia",f:"🇸🇰",c:"421"},{n:"Lituania",f:"🇱🇹",c:"370"},{n:"Letonia",f:"🇱🇻",c:"371"},{n:"Estonia",f:"🇪🇪",c:"372"},{n:"Islandia",f:"🇮🇸",c:"354"},{n:"Luxemburgo",f:"🇱🇺",c:"352"}];
+var paisElegido = PAISES[0];
+
+function renderPaises(filtro){
+  var lista = document.getElementById('lista-paises');
+  var f = (filtro||'').toLowerCase();
+  var filtrados = PAISES.filter(function(p){ return p.n.toLowerCase().indexOf(f)>=0 || p.c.indexOf(f)>=0; });
+  lista.innerHTML = filtrados.map(function(p){
+    return '<div class="pais-item" onclick="elegirPais(\''+p.c+'\',\''+p.f+'\',\''+p.n.replace(/'/g,"&#39;")+'\')">'+
+      '<span class="bandera">'+p.f+'</span><span class="nombre">'+p.n+'</span><span class="codigo">+'+p.c+'</span></div>';
+  }).join('');
+}
+function abrirPaises(){ document.getElementById('pais-ov').classList.add('on'); renderPaises(''); document.getElementById('buscar-pais').value=''; }
+function filtrarPaises(){ renderPaises(document.getElementById('buscar-pais').value); }
+function elegirPais(codigo, bandera, nombre){
+  paisElegido = {c:codigo, f:bandera, n:nombre};
+  document.getElementById('bandera-actual').textContent = bandera;
+  document.getElementById('cod-actual').textContent = '+'+codigo;
+  document.getElementById('pais-ov').classList.remove('on');
+}
+
+function cambiarPaso(id){
+  document.querySelectorAll('.paso').forEach(function(p){ p.classList.remove('on'); });
+  document.getElementById(id).classList.add('on');
+}
+
+function guardarTelefono(){
+  try{
+    var num = document.getElementById('tel-input').value.trim();
+    if(!num){ alert('Escribe tu número de teléfono'); return; }
+    var completo = '+'+paisElegido.c+' '+num;
+    localStorage.setItem('lavobcn_telefono_bienvenida', completo);
+    localStorage.setItem('lavobcn_pais_bienvenida', paisElegido.n);
+    try{
+      fetch('https://lavobcn-default-rtdb.europe-west1.firebasedatabase.app/bienvenida_telefonos/'+Date.now()+'.json', {
+        method:'PUT', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({telefono:completo, pais:paisElegido.n, ts:Date.now()})
+      }).catch(function(){});
+    }catch(e){}
+    cambiarPaso('paso-notif');
+  }catch(e){ console.warn('[guardarTelefono]', e); }
+}
+
+function activarNotifBienvenida(){
+  try{
+    if('Notification' in window){
+      Notification.requestPermission().then(function(){ irPasoInstalar(); });
+    } else { irPasoInstalar(); }
+  }catch(e){ irPasoInstalar(); }
+}
+
+function irPasoInstalar(){
+  try{
+    var ua = navigator.userAgent || '';
+    var esIOS = /iPad|iPhone|iPod/.test(ua);
+    var esAndroid = /Android/.test(ua);
+    var cont = document.getElementById('instrucciones-instalar');
+    if(esIOS){
+      cont.innerHTML =
+        '<div class="instalar-paso">🍎 <b>En iPhone:</b><br>1. Toca el botón de compartir 📤 (abajo, en Safari)<br>2. Busca <b>"Añadir a pantalla de inicio"</b><br>3. Toca "Añadir"</div>';
+    } else if(esAndroid){
+      cont.innerHTML =
+        '<div class="instalar-paso">🤖 <b>En Android:</b><br>1. Toca los 3 puntos ⋮ (arriba a la derecha en Chrome)<br>2. Busca <b>"Instalar app"</b> o "Añadir a pantalla de inicio"<br>3. Confirma</div>';
+    } else {
+      cont.innerHTML =
+        '<div class="instalar-paso">💻 <b>En tu computadora:</b><br>1. Busca el ícono de instalar en la barra de direcciones (➕ o similar)<br>2. O agrégalo como favorito con Ctrl+D / Cmd+D para acceso rápido</div>';
+    }
+    cambiarPaso('paso-instalar');
+  }catch(e){ irPasoRoles(); }
+}
+
+function irPasoRoles(){ cambiarPaso('paso-roles'); }
+</script>
+</body>
+</html>

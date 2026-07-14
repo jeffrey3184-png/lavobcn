@@ -1,0 +1,3607 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>LavoBCN Rider</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+function fechaLocalStr(fecha){
+  var d = fecha || new Date();
+  var y = d.getFullYear();
+  var m = String(d.getMonth()+1).padStart(2,'0');
+  var dia = String(d.getDate()).padStart(2,'0');
+  return y+'-'+m+'-'+dia;
+}
+
+// MOTO TAXI RIDER
+var motoTimer=null;
+
+function mostrarViajeMoto(){
+  var viajes=[
+    {origen:'C/ Marina, 15 · Poblenou',destino:'Pg. de Gràcia, 43',precio:'8€',dist:'~2.8km',eta:'~15min'},
+    {origen:'Rambla del Poblenou, 8',destino:'Aeropuerto T2',precio:'25€',dist:'~15km',eta:'~40min'},
+    {origen:'Av. Diagonal, 200',destino:'C/ Mallorca, 300 · Eixample',precio:'5€',dist:'~1.5km',eta:'~8min'},
+  ];
+  var v=viajes[Math.floor(Math.random()*viajes.length)];
+  document.getElementById('moto-v-origen').textContent=v.origen;
+  document.getElementById('moto-v-destino').textContent=v.destino;
+  document.getElementById('moto-v-precio').textContent=v.precio;
+  document.getElementById('moto-v-dist').textContent=v.dist;
+  document.getElementById('moto-v-eta').textContent=v.eta;
+  document.getElementById('moto-incoming').style.display='flex';
+  // Countdown
+  var bar=document.getElementById('moto-bar');
+  bar.style.width='100%';
+  bar.style.background='#10b981';
+  var secs=20;
+  motoTimer=setInterval(function(){
+    secs--;
+    bar.style.width=(secs/20*100)+'%';
+    if(secs<=5) bar.style.background='#ef4444';
+    if(secs<=0){clearInterval(motoTimer);rechazarViajeMoto();}
+  },1000);
+}
+
+function aceptarViajeMoto(){
+  clearInterval(motoTimer);
+  document.getElementById('moto-incoming').style.display='none';
+  if(typeof showToast==='function') showToast('🛵 ¡Viaje aceptado! Dirígete al punto de recogida');
+}
+
+function rechazarViajeMoto(){
+  clearInterval(motoTimer);
+  document.getElementById('moto-incoming').style.display='none';
+}
+
+// Simular viaje moto cada 3 min (demo)
+// setTimeout(mostrarViajeMoto, 30000);
+</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;font-family:-apple-system,'Helvetica Neue',sans-serif;}
+:root{--blue:#3b82f6;--green:#10b981;--dark:#0d1117;--card:#161b22;--bdr:#232c39;--txt:#fff;--sub:#7a8694;--dim:#94a3b8;--red:#ef4444;}
+body{background:var(--dark);color:var(--txt);max-width:430px;margin:0 auto;min-height:100vh;}
+
+/* LOGIN */
+#screen-login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
+.lcard{background:var(--card);border-radius:20px;padding:28px;width:100%;}
+.llogo{font-size:28px;font-weight:900;color:#fff;text-align:center;margin-bottom:4px;}
+.llogo span{color:var(--green);}
+.lsub{font-size:11px;color:var(--sub);text-align:center;margin-bottom:28px;letter-spacing:.1em;text-transform:uppercase;}
+.lbl{display:block;font-size:10px;color:var(--sub);font-weight:700;margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em;}
+.inp{display:block;width:100%;padding:14px;border-radius:12px;border:1.5px solid var(--bdr);background:var(--dark);color:#fff;font-size:16px;margin-bottom:14px;outline:none;font-family:inherit;}
+.inp:focus{border-color:var(--blue);}
+.lbtn{display:block;width:100%;padding:16px;border-radius:12px;background:var(--blue);color:#fff;font-size:16px;font-weight:800;border:none;cursor:pointer;}
+.lerr{background:#fef2f2;border:1.5px solid #fecaca;border-radius:10px;padding:10px 12px;font-size:12px;font-weight:700;color:var(--red);margin-top:10px;display:none;}
+
+/* APP */
+#app{display:none;}
+
+/* TOPBAR */
+.topbar{position:fixed;top:0;left:0;right:0;max-width:430px;margin:0 auto;z-index:200;display:flex;align-items:center;justify-content:space-between;padding:48px 16px 12px;pointer-events:none;}
+.topbar>*{pointer-events:all;}
+.tb-pill{background:#fff;border-radius:100px;padding:7px 16px 7px 10px;display:flex;align-items:center;gap:8px;box-shadow:0 4px 20px rgba(0,0,0,.25);flex:1;margin:0 10px;}
+.tb-dot{width:9px;height:9px;border-radius:50%;background:var(--green);flex-shrink:0;box-shadow:0 0 0 3px rgba(16,185,129,.2);}
+.tb-dot.off{background:var(--dim);box-shadow:none;}
+.tb-lbl{font-size:10px;color:var(--sub);font-weight:700;}
+.tb-val{font-size:14px;font-weight:900;color:#0f172a;}
+.icon-btn{width:44px;height:44px;border-radius:50%;background:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;box-shadow:0 4px 16px rgba(0,0,0,.2);position:relative;}
+.badge{position:absolute;top:4px;right:4px;width:14px;height:14px;border-radius:50%;background:var(--red);color:#fff;font-size:8px;font-weight:900;display:none;align-items:center;justify-content:center;border:2px solid #fff;}
+.docs-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:500;align-items:flex-end;justify-content:center;}
+.docs-ov.on{display:flex;}
+.docs-box{width:100%;max-width:430px;max-height:88vh;background:var(--dark);border-radius:22px 22px 0 0;overflow-y:auto;padding:22px;}
+.docs-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.docs-tit{font-size:18px;font-weight:900;color:#fff;}
+.docs-x{font-size:24px;color:var(--sub);cursor:pointer;}
+.docs-sub{font-size:12px;color:var(--sub);margin-bottom:18px;}
+.doc-item{display:flex;align-items:center;gap:13px;background:var(--card);border:1.5px solid var(--bdr);
+  border-radius:14px;padding:13px;margin-bottom:10px;cursor:pointer;}
+.doc-ico{width:42px;height:42px;border-radius:11px;background:rgba(255,255,255,.05);display:flex;
+  align-items:center;justify-content:center;font-size:20px;flex-shrink:0;overflow:hidden;}
+.doc-ico img{width:100%;height:100%;object-fit:cover;}
+.doc-nm{font-size:14px;font-weight:800;color:#fff;}
+.doc-st{font-size:11px;font-weight:700;margin-top:2px;}
+.doc-st.pend{color:var(--sub);}
+.doc-st.enviado{color:#f59e0b;}
+.doc-st.verificado{color:var(--green);}
+.doc-st.rechazado{color:var(--red);}
+.badge.show{display:flex;}
+
+/* MAPA */
+#map{position:fixed;top:0;left:0;right:0;bottom:0;height:100%;width:100%;z-index:0;}
+
+/* BOTTOM SHEET */
+.bsheet{position:fixed;bottom:0;left:0;right:0;max-width:430px;margin:0 auto;background:#fff;border-radius:22px 22px 0 0;box-shadow:0 -6px 32px rgba(0,0,0,.15);z-index:100;max-height:75vh;overflow-y:auto;}
+.bs-handle{width:36px;height:4px;border-radius:2px;background:#e2e8f0;margin:12px auto 0;}
+.bs-search{padding:18px 20px 32px;}
+.bs-ico{width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,var(--blue),var(--green));display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:12px;animation:pu 2s ease-in-out infinite;}
+@keyframes pu{0%,100%{box-shadow:0 0 0 0 rgba(37,99,235,.3);}50%{box-shadow:0 0 0 10px rgba(37,99,235,.0);}}
+.bs-title{font-size:18px;font-weight:900;color:#0f172a;}
+.bs-sub{font-size:13px;color:#64748b;font-weight:600;margin-top:4px;}
+.bs-ped{padding:18px 20px 32px;display:none;}
+.ped-lav{font-size:20px;font-weight:900;color:#0f172a;}
+.ped-cnt{font-size:13px;color:#64748b;font-weight:600;margin-bottom:12px;}
+.ped-addr{font-size:14px;font-weight:800;color:#0f172a;margin-bottom:4px;line-height:1.5;}
+.ped-emp{font-size:12px;color:#64748b;margin-bottom:14px;font-weight:600;}
+.tiempo-pill{display:inline-block;background:#f1f5f9;border-radius:100px;padding:5px 14px;font-size:12px;font-weight:800;color:#64748b;margin-bottom:14px;}
+.ref-box{border:2px solid var(--green);border-radius:14px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;cursor:pointer;background:linear-gradient(135deg,rgba(16,185,129,.04),rgba(37,99,235,.04));}
+.ref-num{font-size:28px;font-weight:900;color:#0f172a;letter-spacing:.02em;}
+.ref-sub{font-size:11px;color:#64748b;font-weight:600;margin-bottom:16px;}
+.divider{height:1px;background:#e2e8f0;margin:12px 0;}
+.pago-lbl{font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;font-weight:700;}
+.pago-val{font-size:14px;font-weight:800;color:#0f172a;margin-top:2px;}
+.btn-ret{display:block;width:100%;padding:17px;border-radius:14px;border:none;font-size:16px;font-weight:900;cursor:pointer;font-family:inherit;margin-top:18px;background:#0f172a;color:#fff;transition:all .2s;}
+.btn-ret.go{background:linear-gradient(135deg,var(--green),#0ea5e9);box-shadow:0 4px 16px rgba(16,185,129,.4);}
+.btn-call{width:44px;height:44px;border-radius:50%;border:1.5px solid #e2e8f0;background:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;flex-shrink:0;}
+
+/* FAB */
+.fab-nav{position:fixed;bottom:220px;right:16px;z-index:101;width:50px;height:50px;border-radius:50%;background:var(--green);border:none;cursor:pointer;display:none;align-items:center;justify-content:center;font-size:22px;color:#fff;box-shadow:0 4px 16px rgba(16,185,129,.4);}
+.fab-nav.show{display:flex;}
+.fab-center{position:fixed;bottom:160px;right:16px;z-index:101;width:46px;height:46px;border-radius:50%;background:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 4px 16px rgba(0,0,0,.15);}
+.btn-conectar{position:fixed;bottom:210px;left:50%;transform:translateX(-50%);z-index:130;background:var(--green);color:#062e22;border:none;border-radius:100px;padding:17px 46px;font-size:18px;font-weight:900;letter-spacing:1px;box-shadow:0 8px 30px rgba(16,185,129,.55);cursor:pointer;}
+.btn-conectar.on{background:#1e293b;color:#fff;box-shadow:0 6px 22px rgba(0,0,0,.4);font-size:14px;padding:12px 30px;bottom:240px;}
+.btn-conectar:active{transform:translateX(-50%) scale(.95);}
+
+/* INCOMING */
+.incoming{position:fixed;inset:0;background:var(--dark);z-index:500;display:none;flex-direction:column;}
+.incoming.show{display:flex;}
+.inc-map{flex:1;position:relative;}
+#inc-map{height:100%;width:100%;}
+.inc-sheet{background:#fff;border-radius:24px 24px 0 0;padding:20px 22px 36px;box-shadow:0 -8px 40px rgba(0,0,0,.2);}
+.inc-ring{font-size:10px;font-weight:900;letter-spacing:.15em;color:var(--green);text-align:center;margin-bottom:14px;animation:blink 1s ease-in-out infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.3;}}
+.inc-price{font-size:40px;font-weight:900;color:#0f172a;letter-spacing:-.02em;}
+.inc-badge{background:#f1f5f9;border-radius:100px;padding:4px 12px;font-size:11px;font-weight:800;color:#475569;}
+.inc-lav{font-size:16px;font-weight:900;color:#0f172a;margin-top:10px;}
+.inc-addr{font-size:12px;color:#64748b;margin-top:3px;line-height:1.4;font-weight:600;}
+.inc-tags{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+.inc-tag{background:#f1f5f9;border-radius:100px;padding:5px 12px;font-size:11px;font-weight:800;color:#475569;}
+.inc-ref{font-size:11px;color:#64748b;font-family:monospace;margin-top:8px;font-weight:700;}
+.inc-bar{height:4px;background:#e2e8f0;border-radius:2px;margin:14px 0;overflow:hidden;}
+.inc-fill{height:100%;background:linear-gradient(90deg,var(--green),var(--blue));border-radius:2px;transition:width 1s linear;}
+.inc-exp{font-size:12px;color:#64748b;text-align:center;font-weight:700;margin-bottom:14px;}
+.inc-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.inc-ok{padding:16px;border-radius:14px;background:linear-gradient(135deg,var(--green),#0ea5e9);color:#fff;border:none;font-size:15px;font-weight:900;cursor:pointer;font-family:inherit;}
+.inc-no{padding:16px;border-radius:14px;background:#f1f5f9;color:#64748b;border:none;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;}
+
+/* SIDEBAR */
+.sidebar{position:fixed;inset:0;z-index:400;display:none;}
+.sidebar.open{display:flex;}
+.sb-ov{position:absolute;inset:0;background:rgba(0,0,0,.5);}
+.sb-panel{position:absolute;left:0;top:0;bottom:0;width:78%;max-width:300px;background:var(--dark);display:flex;flex-direction:column;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.sb-head{padding:52px 20px 20px;background:linear-gradient(135deg,var(--blue),var(--green));color:#fff;}
+.sb-av{width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:26px;margin-bottom:10px;overflow:hidden;border:2px solid rgba(255,255,255,.3);}
+.sb-av img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+.sb-name{font-size:18px;font-weight:900;}
+.sb-user{font-size:11px;opacity:.6;font-family:monospace;margin-top:2px;}
+.sb-stats{display:flex;gap:0;margin-top:14px;background:rgba(255,255,255,.15);border-radius:12px;overflow:hidden;}
+.sb-stat{flex:1;padding:10px 8px;text-align:center;border-right:1px solid rgba(255,255,255,.15);}
+.sb-stat:last-child{border:none;}
+.sb-stat-n{font-size:18px;font-weight:900;}
+.sb-stat-l{font-size:9px;opacity:.7;text-transform:uppercase;letter-spacing:.05em;}
+.sb-body{flex:1;overflow-y:auto;padding:8px 0;}
+.sb-link{display:flex;align-items:center;gap:14px;padding:14px 20px;font-size:14px;font-weight:700;color:#fff;cursor:pointer;border:none;background:none;width:100%;text-align:left;}
+.sb-sep{height:1px;background:var(--bdr);margin:6px 0;}
+.sb-link.red{color:var(--red);}
+.sb-foot{padding:14px 20px;font-size:10px;color:var(--sub);border-top:1px solid var(--bdr);}
+
+/* SOPORTE */
+.sop{position:fixed;inset:0;z-index:400;background:#fff;display:none;flex-direction:column;}
+.sop.open{display:flex;}
+.sop-head{display:flex;align-items:center;gap:12px;padding:52px 16px 14px;border-bottom:1.5px solid #e2e8f0;flex-shrink:0;}
+.sop-back{font-size:24px;cursor:pointer;background:none;border:none;color:#0f172a;}
+.sop-title{font-size:17px;font-weight:900;color:#0f172a;}
+.ayuda-group{padding:14px 16px 0;flex-shrink:0;}
+.ayuda-t{font-size:10px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;}
+.ayuda-row{display:flex;align-items:center;gap:12px;padding:13px 14px;background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;margin-bottom:8px;cursor:pointer;}
+.ayuda-row.red{border-color:#fecaca;}
+.ayuda-row.red .ayuda-txt{color:var(--red);}
+.ayuda-ico{font-size:22px;width:30px;text-align:center;}
+.ayuda-txt{font-size:13px;font-weight:800;flex:1;color:#0f172a;}
+.ayuda-arr{color:#94a3b8;}
+.chat-feed{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px;background:#f8faff;}
+.cmsg{max-width:84%;display:flex;flex-direction:column;gap:2px;}
+.cmsg.a{align-self:flex-start;}
+.cmsg.r{align-self:flex-end;}
+.cmsg-who{font-size:10px;font-weight:800;color:#64748b;}
+.cmsg.r .cmsg-who{text-align:right;color:var(--blue);}
+.cmsg-bub{padding:11px 14px;border-radius:16px;font-size:14px;font-weight:600;line-height:1.5;}
+.cmsg.a .cmsg-bub{background:#fff;border:1.5px solid #e2e8f0;border-bottom-left-radius:4px;color:#0f172a;}
+.cmsg.r .cmsg-bub{background:var(--blue);color:#fff;border-bottom-right-radius:4px;}
+.cmsg-t{font-size:10px;color:#94a3b8;font-weight:700;}
+.cmsg.r .cmsg-t{text-align:right;}
+.qrow{display:flex;gap:6px;overflow-x:auto;padding:8px 14px;border-top:1px solid #e2e8f0;background:#fff;flex-shrink:0;}
+.qb{white-space:nowrap;padding:7px 13px;border-radius:20px;border:1.5px solid #e2e8f0;background:#fff;font-size:12px;font-weight:800;color:#64748b;cursor:pointer;font-family:inherit;flex-shrink:0;}
+.qb.red{border-color:#fecaca;color:var(--red);background:#fef2f2;}
+.qb.grn{border-color:#a7f3d0;color:#065f46;background:#f0fdf4;}
+.chat-inp-row{display:flex;gap:8px;padding:10px 14px;border-top:1.5px solid #e2e8f0;background:#fff;align-items:flex-end;flex-shrink:0;padding-bottom:max(12px,env(safe-area-inset-bottom));}
+.chat-inp{flex:1;background:#f8faff;border:1.5px solid #e2e8f0;border-radius:20px;padding:10px 16px;font-size:14px;font-weight:600;color:#0f172a;outline:none;font-family:inherit;resize:none;max-height:80px;line-height:1.4;}
+.chat-inp:focus{border-color:var(--blue);}
+.send-btn{width:42px;height:42px;border-radius:50%;background:var(--blue);border:none;cursor:pointer;color:#fff;font-size:18px;flex-shrink:0;}
+
+/* COD ENTREGA */
+.cod-modal{position:fixed;inset:0;z-index:600;background:rgba(15,23,42,.9);display:none;align-items:center;justify-content:center;padding:24px;}
+.cod-modal.show{display:flex;}
+.cod-card{background:#fff;border-radius:24px;padding:28px 24px;width:100%;max-width:340px;text-align:center;}
+.cod-inp-row{display:flex;gap:12px;justify-content:center;margin:20px 0;}
+.cod-inp{width:64px;height:72px;border:2px solid #e2e8f0;border-radius:14px;font-size:32px;font-weight:900;text-align:center;color:#0f172a;outline:none;font-family:inherit;}
+.cod-inp:focus{border-color:var(--blue);}
+.cod-err{background:#fef2f2;border-radius:10px;padding:8px;font-size:12px;font-weight:700;color:var(--red);margin-bottom:12px;display:none;}
+
+/* GPS MODAL */
+.gps-modal{position:fixed;inset:0;z-index:600;background:rgba(15,23,42,.85);display:none;align-items:flex-end;justify-content:center;}
+.gps-modal.show{display:flex;}
+.gps-panel{background:#fff;border-radius:24px 24px 0 0;padding:20px 20px 40px;width:100%;max-width:430px;}
+.gps-btn{display:flex;align-items:center;gap:14px;padding:14px 16px;border:1.5px solid #e2e8f0;border-radius:14px;background:#fff;cursor:pointer;font-family:inherit;width:100%;margin-bottom:10px;}
+.gps-ico{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.gps-info{text-align:left;}
+.gps-name{font-size:15px;font-weight:800;color:#0f172a;}
+.gps-sub{font-size:11px;color:#94a3b8;font-weight:600;}
+
+/* ONBOARDING */
+.onboarding{position:fixed;inset:0;z-index:700;background:#fff;overflow-y:auto;display:none;}
+.onboarding.show{display:block;}
+.ob-head{background:linear-gradient(135deg,var(--dark),#1e3a5f);padding:52px 20px 24px;text-align:center;color:#fff;}
+.ob-head h2{font-size:22px;font-weight:900;}
+.ob-head p{font-size:13px;opacity:.6;margin-top:4px;}
+.ob-body{padding:20px;}
+.ob-sec{font-size:10px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;margin:16px 0 10px;}
+.ob-inp{width:100%;padding:13px 14px;border:1.5px solid #e2e8f0;border-radius:12px;font-size:15px;font-weight:600;color:#0f172a;outline:none;font-family:inherit;margin-bottom:10px;}
+.ob-inp:focus{border-color:var(--blue);}
+.veh-btns{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
+.veh-btn{padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;background:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;}
+.veh-btn.sel{background:var(--dark);color:#fff;border-color:var(--dark);}
+.doc-row{display:flex;align-items:center;gap:12px;padding:13px 14px;border:1.5px solid #e2e8f0;border-radius:12px;margin-bottom:8px;cursor:pointer;}
+.selfie-box{border:2px dashed #e2e8f0;border-radius:16px;padding:20px;text-align:center;cursor:pointer;margin-bottom:14px;}
+.selfie-box.done{border-color:var(--green);border-style:solid;}
+.selfie-preview{width:90px;height:90px;border-radius:50%;object-fit:cover;border:3px solid var(--green);display:none;margin:0 auto 8px;}
+.tc-box{background:#f8faff;border:1.5px solid #e2e8f0;border-radius:14px;padding:14px;margin-bottom:12px;max-height:180px;overflow-y:auto;font-size:11px;color:#475569;line-height:1.8;}
+.tc-check{display:flex;align-items:flex-start;gap:12px;padding:14px;border:1.5px solid #e2e8f0;border-radius:12px;margin-bottom:16px;cursor:pointer;}
+.tc-chk{width:22px;height:22px;border-radius:6px;border:2px solid #e2e8f0;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px;}
+.ob-save{display:block;width:100%;padding:16px;border-radius:14px;background:linear-gradient(135deg,var(--blue),var(--green));color:#fff;border:none;font-size:15px;font-weight:900;cursor:pointer;font-family:inherit;margin-bottom:32px;}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--dark);color:#fff;padding:12px 22px;border-radius:100px;font-size:13px;font-weight:700;z-index:800;opacity:0;transition:all .25s;pointer-events:none;white-space:nowrap;max-width:90vw;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+@keyframes spin{to{transform:rotate(360deg);}}
+.syncing{display:inline-block;animation:spin .7s linear infinite;}
+</style>
+<script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
+<script defer src="notificaciones.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="screen-login" style="display:flex">
+  <!-- AVISO iOS — solo visible si abre desde Safari, no desde PWA instalada -->
+  <div id="ios-install-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#1a1200;border-top:2px solid #f97316;padding:14px 16px 28px;">
+    <div style="font-size:13px;font-weight:900;color:#f97316;margin-bottom:6px;">📲 Instala la app para recibir avisos con pantalla apagada</div>
+    <div style="font-size:12px;color:#94a3b8;margin-bottom:10px;">Toca <strong style="color:#fff;">Compartir</strong> → <strong style="color:#fff;">Añadir a pantalla de inicio</strong> → Ábrela desde el icono. Después activa avisos.</div>
+    <button onclick="document.getElementById('ios-install-banner').style.display='none'" style="width:100%;padding:11px;border-radius:10px;background:#f97316;color:#fff;border:none;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;">Entendido</button>
+  </div>
+  <div class="lcard">
+    <div class="llogo">Lavo<span>BCN</span></div>
+    <div class="lsub">Repartidor</div>
+    <label class="lbl">Usuario</label>
+    <input class="inp" id="lr" type="text" placeholder="lavo00001" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
+    <label class="lbl">Código (6 dígitos)</label>
+    <input class="inp" id="lc" type="password" placeholder="casa1300" maxlength="20" autocomplete="off">
+    <button class="lbtn" id="lbtn">Entrar →</button>
+    <button type="button" onclick="probarSonidoDiagnostico()" style="width:100%;margin-top:10px;padding:11px;border-radius:10px;background:none;border:1px solid var(--bdr);color:var(--sub);font-size:13px;cursor:pointer;font-family:inherit;">🔊 Probar sonido (diagnóstico)</button>
+    <div class="lerr" id="lerr"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none">
+  <div id="map"></div>
+  <div class="topbar">
+    <button class="icon-btn" onclick="openSB()">☰</button>
+    <div class="tb-pill">
+      <div class="tb-dot" id="tb-dot"></div>
+      <div><div class="tb-lbl">Estado</div><div class="tb-val" id="tb-val">Repartiendo</div></div>
+    </div>
+    <!-- Botón de sincronizar ganancias -->
+    <button class="icon-btn" id="btn-sync" onclick="sincronizarGanancias()" title="Actualizar ganancias" style="font-size:18px;">↻</button>
+    <button class="icon-btn" onclick="openSop()">🎧<span class="badge" id="sup-badge"></span></button>
+  </div>
+
+  <!-- BANNER: pregunta de ubicación (GPS automático) -->
+  <!-- SUPERVISOR — barra de cuenta regresiva tipo línea -->
+  <!-- SUPERVISOR — barra de cuenta regresiva, colores de la app -->
+  <div id="banner-gps" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9000;
+    padding:env(safe-area-inset-top,24px) 20px 20px;
+    background:#0d1117;
+    border-bottom:3px solid #7c3aed;
+    box-shadow:0 6px 40px rgba(124,58,237,.5);
+    transform:translateY(-100%);transition:transform .35s cubic-bezier(.2,.9,.3,1);">
+    <div style="font-size:22px;font-weight:900;color:#fff;margin-bottom:10px;line-height:1.3;" id="banner-gps-texto">¿Sigues ahí?</div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="responderBannerGPS(true)" style="flex:1;padding:16px;border-radius:14px;background:linear-gradient(135deg,#10b981,#7c3aed);border:none;color:#fff;font-size:17px;font-weight:900;cursor:pointer;">Sí, sigo aquí</button>
+      <div onclick="cerrarBannerGPS()" style="width:52px;height:52px;border-radius:14px;background:#1e293b;display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer;color:#64748b;">✕</div>
+    </div>
+    <div style="height:5px;background:#1e293b;border-radius:3px;margin-top:14px;overflow:hidden;">
+      <div id="banner-gps-barra" style="height:100%;background:linear-gradient(90deg,#10b981,#7c3aed);width:100%;transition:width linear;border-radius:3px;"></div>
+    </div>
+  </div>
+  <button class="fab-center" onclick="centrar()">⊙</button>
+  <button class="fab-nav" id="fab-nav" onclick="openGPS()">↗</button>
+  <button class="btn-conectar" id="btn-conectar" onclick="conectar()">CONECTAR</button>
+  <div class="bsheet" id="bsheet">
+    <div class="bs-handle"></div>
+    <div class="bs-search" id="bs-search">
+      <div class="bs-ico">🧺</div>
+      <div class="bs-title">Buscando pedidos…</div>
+      <div class="bs-sub">Mantente en la zona de Sant Martí · Barcelona</div>
+    </div>
+    <div class="bs-ped" id="bs-ped">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px;">
+        <div><div class="ped-lav" id="ped-lav">—</div><div class="ped-cnt">1 pedido activo</div></div>
+        <div style="display:flex;gap:6px;"><button class="btn-call" onclick="editarNotaViaje()" style="font-size:13px;padding:7px 10px;">✏️</button><button class="btn-call" onclick="llamar()">📞</button></div>
+      </div>
+      <div class="ped-addr" id="ped-addr">—</div>
+      <div id="nota-viaje-box" style="display:none;margin:6px 0;">
+        <textarea id="nota-viaje-txt" rows="2" style="width:100%;background:#161b22;border:1.5px solid #f97316;border-radius:9px;color:#fff;font-size:13px;padding:8px;font-family:inherit;resize:none;outline:none;" placeholder="Añade nota o edita dirección..."></textarea>
+        <button onclick="guardarNotaViaje()" style="width:100%;margin-top:5px;padding:9px;border-radius:9px;background:#f97316;color:#fff;border:none;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;">Guardar</button>
+      </div>
+      <div class="ped-emp" id="ped-emp">—</div>
+      <div class="tiempo-pill" id="ped-tiempo">Listo en aprox. 5 minutos</div>
+      <div class="ref-box" onclick="copiarRef()"><div class="ref-num" id="ped-ref">—</div><span style="color:var(--green);font-size:18px;">⤢</span></div>
+      <div class="ref-sub" id="ped-ref-sub">Muestra este número en la lavandería para retirar</div>
+      <div class="divider"></div>
+      <div class="pago-lbl">Forma de pago</div>
+      <div class="pago-val">Efectivo al entregar</div>
+      <button class="btn-ret" id="btn-ret" onclick="accion()">Retirar</button>
+    </div>
+  </div>
+</div>
+
+<!-- INCOMING -->
+<div class="incoming" id="incoming">
+  <div class="inc-map"><div id="inc-map"></div></div>
+  <div class="inc-sheet">
+    <div class="inc-ring">● PEDIDO ENTRANTE · LAVOBCN</div>
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;">
+      <div><div class="inc-price" id="ip-price">4€</div><div style="font-size:11px;color:#64748b;font-weight:600;">Tarifa garantizada</div></div>
+      <div class="inc-badge" id="ip-serv">Lavado</div>
+    </div>
+    <div class="inc-lav" id="ip-lav">Perfect Clean</div>
+    <div class="inc-addr" id="ip-addr">Pg. del Taulat, 279A · Sant Martí</div>
+    <div class="inc-tags">
+      <div class="inc-tag" id="ip-dist">📍 0.8 km · 4 min</div>
+      <div class="inc-tag">💵 Efectivo</div>
+    </div>
+    <div style="background:rgba(16,185,129,.12);border:1.5px solid #10b981;border-radius:10px;padding:10px 14px;margin:10px 0;display:flex;align-items:center;gap:10px;">
+      <span style="font-size:13px;font-weight:700;color:#566173;">🔐 Código del cliente</span>
+      <span id="ip-codigo" style="font-size:26px;font-weight:900;color:#10b981;letter-spacing:6px;">—</span>
+    </div>
+    <div class="inc-ref" id="ip-ref">Ref: —</div>
+    <div class="inc-bar"><div class="inc-fill" id="ip-fill" style="width:100%"></div></div>
+    <div class="inc-exp">Expira en <strong id="ip-exp">20s</strong></div>
+    <div class="inc-btns">
+      <button class="inc-ok" onclick="accept()">✓ Aceptar</button>
+      <button class="inc-no" onclick="reject()">Rechazar</button>
+    </div>
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<div class="sidebar" id="sidebar">
+  <div class="sb-ov" onclick="closeSB()"></div>
+  <div class="sb-panel">
+    <div class="sb-head">
+      <div class="sb-av"><img id="sb-selfie" src="" style="display:none"><span id="sb-ico">🧑</span></div>
+      <div class="sb-name" id="sb-name">—</div>
+      <div class="sb-user" id="sb-user">—</div>
+      <div class="sb-stats">
+        <div class="sb-stat"><div class="sb-stat-n" id="sb-v">0</div><div class="sb-stat-l">Hoy</div></div>
+        <div class="sb-stat"><div class="sb-stat-n" id="sb-e">0€</div><div class="sb-stat-l">Ganado hoy</div></div>
+        <div class="sb-stat"><div class="sb-stat-n" id="sb-p">0€</div><div class="sb-stat-l">Propinas</div></div>
+        <div class="sb-stat"><div class="sb-stat-n" id="sb-sem" style="color:#38bdf8;">0</div><div class="sb-stat-l">Semana</div></div>
+      </div>
+    </div>
+    <div class="sb-body">
+      <button class="sb-link" onclick="toggleSt();closeSB()">⏻ <span id="sb-st-lbl">Desconectarme</span></button>
+      <div class="sb-sep"></div>
+      <button class="sb-link" onclick="openSop();closeSB()">💬 Soporte y ayuda</button>
+      <button class="sb-link" onclick="closeSB();abrirZonaReparto();">🗺 Mi zona de reparto</button>
+      <div class="sb-sep"></div>
+      <button class="sb-link" onclick="closeSB();abrirPedidosLavRider();">🧺 Pedidos lavandería</button>
+      <button class="sb-link" onclick="closeSB();abrirHistorial();">📋 Historial de pedidos</button>
+      <button class="sb-link" onclick="closeSB();abrirViajesAsignados();" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>📲 Viajes asignados</span>
+        <span id="badge-viajes-asig" style="display:none;background:#f59e0b;color:#1a1100;font-size:11px;font-weight:900;padding:2px 8px;border-radius:100px;"></span>
+      </button>
+      <button class="sb-link" onclick="closeSB();abrirGananciasOv();">💰 Mis ganancias</button>
+      <div class="sb-sep"></div>
+      <button class="sb-link" onclick="closeSB();abrirDocsRider();">📄 Mis documentos<span class="badge" id="docs-badge-rider" style="position:relative;top:0;right:0;margin-left:8px;display:inline-flex;"></span></button>
+      <button class="sb-link" onclick="closeSB();abrirConfiguracion();">⚙️ Configuración</button>
+      <div class="sb-sep"></div>
+      <button class="sb-link red" onclick="logout()">🚪 Cerrar sesión</button>
+    </div>
+    <div class="sb-foot">LavoBCN · 0% comisión · 50% dto. lavanderías</div>
+  </div>
+</div>
+
+<!-- DOCUMENTOS RIDER -->
+<div class="docs-ov" id="docs-ov-rider">
+  <div class="docs-box">
+    <div class="docs-hdr">
+      <div class="docs-tit">📄 Mis documentos</div>
+      <div class="docs-x" onclick="document.getElementById('docs-ov-rider').classList.remove('on');">✕</div>
+    </div>
+    <div class="docs-sub">Verificamos tus documentos para que puedas repartir con LavoBCN.</div>
+    <div id="docs-lista-rider"></div>
+    <input type="file" id="docs-foto-input-rider" accept="image/*" capture="environment" style="display:none;" onchange="subirDocFoto(this,'rider')">
+  </div>
+</div>
+
+<!-- SOPORTE -->
+<div class="sop" id="soporte">
+  <div class="sop-head">
+    <button class="sop-back" onclick="closeSop()">←</button>
+    <div class="sop-title">Centro de ayuda</div>
+  </div>
+  <div class="ayuda-group">
+    <div class="ayuda-row" onclick="abrirMensajesRider()"><span class="ayuda-ico">✉️</span><span class="ayuda-txt">Mensajes</span><span class="badge" id="msg-badge-rider" style="position:relative;top:0;right:0;margin-right:6px;display:inline-flex;"></span><span class="ayuda-arr">›</span></div>
+  </div>
+  <div class="ayuda-group">
+    <div class="ayuda-t">Gestión de entregas</div>
+    <div class="ayuda-row" onclick="ayuda('pedido')"><span class="ayuda-ico">🛍️</span><span class="ayuda-txt">Ayuda con un pedido</span><span class="ayuda-arr">›</span></div>
+    <div class="ayuda-row red" onclick="ayuda('rider')"><span class="ayuda-ico">🆘</span><span class="ayuda-txt">Necesito otro repartidor</span><span class="ayuda-arr">›</span></div>
+  </div>
+  <div class="ayuda-group" style="padding-top:8px;">
+    <div class="ayuda-t">Otros incidentes</div>
+    <div class="ayuda-row" onclick="ayuda('acc')"><span class="ayuda-ico">🚨</span><span class="ayuda-txt">Accidente / Vehículo averiado</span><span class="ayuda-arr">›</span></div>
+    <div class="ayuda-row" onclick="ayuda('app')"><span class="ayuda-ico">📱</span><span class="ayuda-txt">Problema con la app</span><span class="ayuda-arr">›</span></div>
+    <div class="ayuda-row" onclick="ayuda('pago')"><span class="ayuda-ico">💵</span><span class="ayuda-txt">Pago o propina</span><span class="ayuda-arr">›</span></div>
+  </div>
+  <div class="chat-feed" id="chat-feed"><div id="tw" style="display:none;"></div></div>
+  <div class="qrow">
+    <button class="qb grn" onclick="qs('🧺 Pedido listo para recoger')">🧺 Listo</button>
+    <button class="qb" onclick="qs('📍 Estoy en Perfect Clean')">📍 Perfec</button>
+    <button class="qb" onclick="qs('📍 Estoy en Tintorería Prim')">📍 Prim</button>
+    <button class="qb" onclick="qs('✅ Entrega completada')">✅ OK</button>
+    <button class="qb red" onclick="ayuda('rider')">🆘 Rider</button>
+    <button class="qb" onclick="qs('⏸ Pausa corta')">⏸ Pausa</button>
+  </div>
+  <div class="chat-inp-row">
+    <textarea class="chat-inp" id="cinp" placeholder="Escribe al admin…" rows="1"
+      oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,80)+'px'"
+      onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg();}"></textarea>
+    <button class="send-btn" onclick="sendMsg()">↑</button>
+  </div>
+</div>
+
+<!-- COD MODAL -->
+<div class="cod-modal" id="cod-modal">
+  <div class="cod-card">
+    <div style="font-size:40px;margin-bottom:12px;">🔐</div>
+    <div style="font-size:20px;font-weight:900;color:#0f172a;margin-bottom:6px;">Código de entrega</div>
+    <div style="font-size:13px;color:#64748b;font-weight:600;margin-bottom:4px;">Pide al cliente los 2 dígitos</div>
+    <div class="cod-inp-row">
+      <input class="cod-inp" id="cod1" type="tel" maxlength="1" inputmode="numeric" oninput="if(this.value)document.getElementById('cod2').focus()">
+      <input class="cod-inp" id="cod2" type="tel" maxlength="1" inputmode="numeric" oninput="if(this.value)checkCod()">
+    </div>
+    <div class="cod-err" id="cod-err">❌ Código incorrecto. Pide de nuevo al cliente.</div>
+    <button onclick="verificarCod()" style="display:block;width:100%;padding:15px;border-radius:12px;background:#0f172a;color:#fff;border:none;font-size:15px;font-weight:900;cursor:pointer;font-family:inherit;">Verificar y entregar</button>
+    <button onclick="cerrarCod()" style="display:block;width:100%;padding:12px;border-radius:12px;background:transparent;color:#94a3b8;border:none;font-size:13px;font-weight:700;cursor:pointer;margin-top:8px;font-family:inherit;">Cancelar</button>
+  </div>
+</div>
+
+<!-- GPS MODAL -->
+<div class="gps-modal" id="gps-modal">
+  <div class="gps-panel">
+    <div style="width:36px;height:4px;border-radius:2px;background:#e2e8f0;margin:0 auto 18px;"></div>
+    <div style="font-size:16px;font-weight:900;color:#0f172a;margin-bottom:16px;">Abrir navegación</div>
+    <button class="gps-btn" onclick="abrirGPS('waze')"><div class="gps-ico" style="background:#1a1aff;">🔵</div><div class="gps-info"><div class="gps-name">Waze</div><div class="gps-sub">Tráfico real · Recomendado</div></div><span style="margin-left:auto;color:#94a3b8;">›</span></button>
+    <button class="gps-btn" onclick="abrirGPS('google')"><div class="gps-ico" style="background:#f1f5f9;border:1.5px solid #e2e8f0;">🗺</div><div class="gps-info"><div class="gps-name">Google Maps</div><div class="gps-sub">Ruta en bici · Detallado</div></div><span style="margin-left:auto;color:#94a3b8;">›</span></button>
+    <button class="gps-btn" onclick="abrirGPS('apple')"><div class="gps-ico" style="background:#f0f9ff;border:1.5px solid #bae6fd;">🍎</div><div class="gps-info"><div class="gps-name">Apple Maps</div><div class="gps-sub">Nativo iPhone · Siri</div></div><span style="margin-left:auto;color:#94a3b8;">›</span></button>
+    <button onclick="cerrarGPS()" style="display:block;width:100%;padding:13px;border-radius:12px;background:#f1f5f9;color:#64748b;border:none;font-size:14px;font-weight:700;cursor:pointer;margin-top:4px;font-family:inherit;">Cancelar</button>
+  </div>
+</div>
+
+<!-- ONBOARDING -->
+<div class="onboarding" id="onboarding">
+  <div class="ob-head"><h2>Bienvenido a LavoBCN</h2><p>Completa tu perfil para empezar</p></div>
+  <div class="ob-body">
+    <div class="ob-sec">Foto de perfil (obligatorio)</div>
+    <div class="selfie-box" id="selfie-box" onclick="document.getElementById('selfie-file').click()">
+      <img id="selfie-prev" class="selfie-preview">
+      <div id="selfie-hint"><div style="font-size:40px;margin-bottom:8px;">🤳</div><div style="font-size:14px;font-weight:800;color:#0f172a;">Tomar selfie</div><div style="font-size:12px;color:#94a3b8;margin-top:4px;">Cámara frontal · Obligatorio</div></div>
+    </div>
+    <input type="file" id="selfie-file" accept="image/*" capture="user" style="display:none" onchange="processSelfie(this)">
+    <div class="ob-sec">Datos personales</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <input class="ob-inp" id="ob-nombre" placeholder="Nombre">
+      <input class="ob-inp" id="ob-apellido" placeholder="Apellido">
+    </div>
+    <input class="ob-inp" id="ob-tel" type="tel" placeholder="Teléfono / WhatsApp">
+    <input class="ob-inp" id="ob-email" type="email" placeholder="Email">
+    <input class="ob-inp" id="ob-dir" placeholder="Dirección">
+    <div class="ob-sec">Vehículo</div>
+    <div class="veh-btns">
+      <button class="veh-btn" onclick="selVeh(this,'🛵 Moto')">🛵 Moto</button>
+      <button class="veh-btn" onclick="selVeh(this,'🚲 Bici')">🚲 Bici</button>
+      <button class="veh-btn" onclick="selVeh(this,'🛴 Patinete')">🛴 Patinete</button>
+      <button class="veh-btn" onclick="selVeh(this,'🚗 Auto')">🚗 Auto</button>
+    </div>
+    <input class="ob-inp" id="ob-mat" placeholder="Matrícula (opcional)">
+    <div class="ob-sec">Documentación</div>
+    <div class="doc-row" onclick="document.getElementById('dni-file').click()"><span style="font-size:22px;">🪪</span><div style="flex:1;"><div style="font-size:13px;font-weight:800;">DNI / NIE</div><div style="font-size:11px;color:#94a3b8;">Foto del documento</div></div><span id="dni-st" style="font-size:11px;color:#94a3b8;">Subir</span></div>
+    <input type="file" id="dni-file" accept="image/*" style="display:none" onchange="document.getElementById('dni-st').textContent='✓';document.getElementById('dni-st').style.color='#10b981'">
+    <div class="doc-row" onclick="document.getElementById('seg-file').click()"><span style="font-size:22px;">🛡️</span><div style="flex:1;"><div style="font-size:13px;font-weight:800;">Seguro del vehículo</div><div style="font-size:11px;color:#94a3b8;">Foto del seguro</div></div><span id="seg-st" style="font-size:11px;color:#94a3b8;">Subir</span></div>
+    <input type="file" id="seg-file" accept="image/*" style="display:none" onchange="document.getElementById('seg-st').textContent='✓';document.getElementById('seg-st').style.color='#10b981'">
+    <div class="ob-sec">Términos y condiciones</div>
+    <div class="tc-box">
+<b>1. RELACIÓN LABORAL</b><br>El repartidor opera como colaborador independiente. LavoBCN no establece relación laboral ni obligación de horarios fijos.<br><br>
+<b>2. COMISIONES</b><br>LavoBCN no cobra comisión. Las propinas pertenecen íntegramente al repartidor.<br><br>
+<b>3. GPS Y UBICACIÓN</b><br>El repartidor autoriza el uso del GPS durante el tiempo que esté activo. La ubicación se comparte con el admin y el cliente.<br><br>
+<b>4. ZONA DE REPARTO</b><br>La zona asignada es Barcelona. Salir de zona de forma reiterada puede suspender el acceso.<br><br>
+<b>5. DOCUMENTACIÓN</b><br>El repartidor debe mantener vigente su documentación. LavoBCN puede solicitar documentación adicional en cualquier momento.<br><br>
+<b>6. COMPORTAMIENTO</b><br>El repartidor se compromete a tratar con respeto a clientes y lavanderías.<br><br>
+<b>7. CÓDIGO DE ENTREGA</b><br>El repartidor debe verificar el código de 2 dígitos con el cliente antes de confirmar cada entrega.<br><br>
+<b>8. DATOS PERSONALES</b><br>Los datos se usan exclusivamente para la gestión de la plataforma.<br><br>
+<b>9. MODIFICACIONES</b><br>LavoBCN puede modificar estos términos con aviso previo de 15 días.<br><br>
+<b>10. JURISDICCIÓN</b><br>Estos términos se rigen por la legislación española. Jurisdicción: Barcelona.
+    </div>
+    <div class="tc-check" onclick="toggleTC()">
+      <div class="tc-chk" id="tc-chk"></div>
+      <div style="font-size:12px;color:#475569;font-weight:600;line-height:1.5;">He leído y acepto los <strong style="color:var(--blue);">Términos y Condiciones</strong> de LavoBCN, incluyendo el uso del GPS y la ubicación en tiempo real durante las entregas.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════
+// FIREBASE RIDER — ESCUCHA PEDIDOS
+// ═══════════════════════════════
+var fbConfigR = {
+  apiKey: "AIzaSyDaopojkUpu7kQ2-H8yEaGJ21SqUZI9I1w",
+  authDomain: "lavobcn.firebaseapp.com",
+  databaseURL: "https://lavobcn-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "lavobcn",
+  storageBucket: "lavobcn.firebasestorage.app",
+  messagingSenderId: "749157836989",
+  appId: "1:749157836989:web:c1052afdfab2b6aca0afd4"
+};
+
+var fbR = null, fbDBR = null, fbEscuchando = false;
+
+function initFirebaseRider(){
+  try {
+    if(typeof firebase === 'undefined') return false;
+    try { fbR = firebase.app(); } catch(e) { fbR = firebase.initializeApp(fbConfigR); }
+    fbDBR = firebase.database();
+    console.log('✅ Firebase Rider conectado');
+    return true;
+  } catch(e){ console.log('Firebase Rider error:', e); return false; }
+}
+
+function marcarAceptado(fbKey){
+  if(!fbDBR || !fbKey) return;
+  try { fbDBR.ref('pedidos/'+fbKey+'/estado').set('aceptado'); } catch(e){}
+}
+
+// ═══════════════════════════════
+// FIREBASE RIDER — ESCUCHA PEDIDOS
+// (usa la conexión real definida arriba)
+// ═══════════════════════════════
+
+function escucharPedidos(){
+  if(!fbDBR || fbEscuchando) return;
+  fbEscuchando = true;
+  fbDBR.ref('pedidos').orderByChild('estado').equalTo('pendiente').on('child_added', function(snap){
+    var pedido = snap.val();
+    if(!pedido || !pedido.ref) return;
+    // Solo mostrar si el rider está conectado y libre
+    if(!stOn || pedActivo) return;
+    console.log('🔔 Nuevo pedido Firebase:', pedido.ref);
+    // Vibrar
+    if(navigator.vibrate) navigator.vibrate([400,200,400,200,400]);
+    // Mostrar pedido entrante
+    pedPend = {
+      ref: pedido.ref,
+      lav: pedido.local || 'Perfect Clean',
+      dir: pedido.dir,
+      precio: pedido.total || '10€',
+      serv: 'Lavandería',
+      telCliente: pedido.tel,
+      fase: 0,
+      firebaseKey: snap.key
+    };
+    // Mostrar incoming
+    mostrarPedidoEntrante();
+  });
+}
+
+var _ringIv = null;
+// ── 3 OPCIONES PARA ELEGIR (sonido limpio, profesional, no áspero) ──
+
+// Opción A: "Clásico de app" — dos notas ascendentes, como timbre de puerta digital
+function sonidoPedidoA(){
+  try{
+    var ctx = obtenerAudioCtx(); if(!ctx) return;
+    [659, 880].forEach(function(f,i){
+      var o = ctx.createOscillator(), g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.type = 'sine'; o.frequency.value = f;
+      var t = ctx.currentTime + i*0.15;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.5, t+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t+0.4);
+      o.start(t); o.stop(t+0.42);
+    });
+  }catch(e){}
+}
+
+// Opción B: "Timbre repetido" — como un teléfono sonando, dos tonos alternados rápido
+function sonidoPedidoB(){
+  try{
+    var ctx = obtenerAudioCtx(); if(!ctx) return;
+    [988, 784, 988, 784].forEach(function(f,i){
+      var o = ctx.createOscillator(), g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.type = 'sine'; o.frequency.value = f;
+      var t = ctx.currentTime + i*0.13;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.45, t+0.015);
+      g.gain.exponentialRampToValueAtTime(0.0001, t+0.11);
+      o.start(t); o.stop(t+0.12);
+    });
+  }catch(e){}
+}
+
+// Opción C: "Campana suave" — un golpe tipo marimba/xilófono, cálido y redondo
+// Opción D: "EUFORIA" — construcción de tensión + golpe brillante + brillo final, ~3.5s
+// "GONG" — campana china redonda y plana, golpe fuerte y seco (sin eco largo), para Conectarse
+// "CLIC + DENTRO" — golpe seco de cerrojo + acorde cálido que se sostiene 4s, sensación de "ya quedaste conectado"
+function sonidoConectarClicDentro(){
+  try{
+    var ctx = obtenerAudioCtx(); if(!ctx) return;
+    var ahora = ctx.currentTime;
+
+    var comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -10; comp.knee.value = 16; comp.ratio.value = 10;
+    comp.attack.value = 0.002; comp.release.value = 0.3;
+    comp.connect(ctx.destination);
+
+    // El "clic" — como un cerrojo o switch que engancha, muy corto y seco
+    var clic = ctx.createOscillator(), gClic = ctx.createGain();
+    clic.type = 'square'; clic.frequency.value = 2200;
+    clic.connect(gClic); gClic.connect(comp);
+    gClic.gain.setValueAtTime(0.55, ahora);
+    gClic.gain.exponentialRampToValueAtTime(0.0001, ahora+0.035);
+    clic.start(ahora); clic.stop(ahora+0.04);
+
+    var clic2 = ctx.createOscillator(), gClic2 = ctx.createGain();
+    clic2.type = 'square'; clic2.frequency.value = 900;
+    clic2.connect(gClic2); gClic2.connect(comp);
+    gClic2.gain.setValueAtTime(0.001, ahora);
+    gClic2.gain.setValueAtTime(0.4, ahora+0.03);
+    gClic2.gain.exponentialRampToValueAtTime(0.0001, ahora+0.09);
+    clic2.start(ahora+0.03); clic2.stop(ahora+0.1);
+
+    // El "ya estás dentro" — acorde cálido que entra justo después del clic y se sostiene 4s completos
+    var tEntra = ahora + 0.08;
+    [261, 329, 392, 523].forEach(function(f, i){ // Do mayor cálido (C-E-G-C octava)
+      var o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'triangle'; o.frequency.value = f;
+      o.connect(g); g.connect(comp);
+      var pico = i===0 ? 0.4 : 0.28 - i*0.04; // el fundamental pega más fuerte
+      g.gain.setValueAtTime(0.0001, tEntra);
+      g.gain.linearRampToValueAtTime(pico, tEntra+0.15); // entra suave, no de golpe
+      g.gain.setValueAtTime(pico, tEntra+2.6); // se mantiene sostenido — la sensación de "dentro"
+      g.gain.exponentialRampToValueAtTime(0.0001, tEntra+3.92); // y se apaga despacio al final
+      o.start(tEntra); o.stop(tEntra+3.95);
+    });
+  }catch(e){}
+}
+
+function sonidoConectarGong(){
+  try{
+    var ctx = obtenerAudioCtx(); if(!ctx) return;
+    var ahora = ctx.currentTime;
+
+    var comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -8; comp.knee.value = 15; comp.ratio.value = 12;
+    comp.attack.value = 0.001; comp.release.value = 0.2;
+    comp.connect(ctx.destination);
+
+    // Click del mazo golpeando — el ataque duro inicial
+    var mazo = ctx.createOscillator(), gMazo = ctx.createGain();
+    mazo.type = 'square'; mazo.frequency.value = 2400;
+    mazo.connect(gMazo); gMazo.connect(comp);
+    gMazo.gain.setValueAtTime(0.5, ahora);
+    gMazo.gain.exponentialRampToValueAtTime(0.0001, ahora+0.025);
+    mazo.start(ahora); mazo.stop(ahora+0.03);
+
+    // Cuerpo del gong: varias frecuencias NO armónicas entre sí (eso es lo que da el "clang" metálico real)
+    // Ahora con resonancia larga — el "tommmmmm" que se siente, no un golpe corto
+    var parciales = [108, 162, 211, 252, 333, 401];
+    parciales.forEach(function(f, i){
+      var o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = i%2===0 ? 'sine' : 'triangle';
+      o.frequency.value = f;
+      o.connect(g); g.connect(comp);
+      var pico = 0.85 - i*0.09; // los parciales más altos pegan un poco menos fuerte
+      var duracion = 2.6 - i*0.35; // resonancia larga real de gong, cada parcial se apaga a su tiempo
+      g.gain.setValueAtTime(0.0001, ahora);
+      g.gain.exponentialRampToValueAtTime(pico, ahora+0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001, ahora+duracion);
+      o.start(ahora); o.stop(ahora+duracion+0.02);
+    });
+  }catch(e){}
+}
+
+function sonidoPedidoEuforia(){
+  try{
+    var ctx = obtenerAudioCtx(); if(!ctx) return;
+    var ahora = ctx.currentTime;
+
+    var comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -10; comp.knee.value = 20; comp.ratio.value = 10;
+    comp.attack.value = 0.002; comp.release.value = 0.25;
+    comp.connect(ctx.destination);
+
+    var delay = ctx.createDelay(0.6);
+    delay.delayTime.value = 0.18;
+    var fb = ctx.createGain(); fb.gain.value = 0.45;
+    delay.connect(fb); fb.connect(delay); delay.connect(comp);
+
+    // FASE 1 — arpegio ascendente rápido, construye la emoción (0 a 1.1s)
+    var notasArpegio = [523, 659, 784, 1047, 1319, 1568];
+    notasArpegio.forEach(function(f, i){
+      var o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'triangle'; o.frequency.value = f;
+      o.connect(g); g.connect(comp);
+      var t = ahora + i*0.13;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.45, t+0.015);
+      g.gain.exponentialRampToValueAtTime(0.0001, t+0.16);
+      o.start(t); o.stop(t+0.18);
+    });
+
+    // FASE 2 — el golpe: acorde brillante completo, el "¡premio!" (a los 1.05s)
+    var tGolpe = ahora + 1.05;
+    [1047, 1319, 1568, 2093].forEach(function(f){
+      var o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'triangle'; o.frequency.value = f;
+      o.connect(g); g.connect(comp); g.connect(delay);
+      g.gain.setValueAtTime(0.0001, tGolpe);
+      g.gain.exponentialRampToValueAtTime(0.55, tGolpe+0.015);
+      g.gain.exponentialRampToValueAtTime(0.0001, tGolpe+0.9);
+      o.start(tGolpe); o.stop(tGolpe+0.95);
+    });
+
+    // FASE 3 — brillo final: destellos agudos con eco, se apagan lento como chispas (1.5s a 3.5s)
+    var tBrillo = ahora + 1.5;
+    [2093, 2637, 3136].forEach(function(f, i){
+      var o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'sine'; o.frequency.value = f;
+      o.connect(g); g.connect(comp); g.connect(delay);
+      var t = tBrillo + i*0.12;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.3, t+0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, t+1.6); // cola larga, brillo que se apaga despacio
+      o.start(t); o.stop(t+1.7);
+    });
+  }catch(e){}
+}
+
+function sonidoPedidoC(){
+  try{
+    var ctx = obtenerAudioCtx(); if(!ctx) return;
+    var fundamental = ctx.createOscillator(), gF = ctx.createGain();
+    fundamental.type = 'sine'; fundamental.frequency.value = 523;
+    fundamental.connect(gF); gF.connect(ctx.destination);
+    gF.gain.setValueAtTime(0.0001, ctx.currentTime);
+    gF.gain.exponentialRampToValueAtTime(0.5, ctx.currentTime+0.01);
+    gF.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime+0.7);
+    fundamental.start(ctx.currentTime); fundamental.stop(ctx.currentTime+0.72);
+
+    var armonico = ctx.createOscillator(), gA = ctx.createGain();
+    armonico.type = 'sine'; armonico.frequency.value = 523*2.4; // armónico tipo metal/marimba
+    armonico.connect(gA); gA.connect(ctx.destination);
+    gA.gain.setValueAtTime(0.0001, ctx.currentTime);
+    gA.gain.exponentialRampToValueAtTime(0.2, ctx.currentTime+0.005);
+    gA.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime+0.35);
+    armonico.start(ctx.currentTime); armonico.stop(ctx.currentTime+0.37);
+  }catch(e){}
+}
+
+function sonidoPedidoEntrante(){
+  try{
+    var ctx = obtenerAudioCtx(); if(!ctx) return;
+    var ahora = ctx.currentTime;
+
+    // Eco corto tipo "rebote de radar"
+    var delay = ctx.createDelay(0.5);
+    delay.delayTime.value = 0.13;
+    var feedback = ctx.createGain();
+    feedback.gain.value = 0.35;
+    delay.connect(feedback); feedback.connect(delay);
+    delay.connect(ctx.destination);
+
+    // Blip digital corto al inicio — el "click" del radar detectando algo
+    var blip = ctx.createOscillator(), gBlip = ctx.createGain();
+    blip.type = 'square'; blip.frequency.value = 1800;
+    blip.connect(gBlip); gBlip.connect(ctx.destination); gBlip.connect(delay);
+    gBlip.gain.setValueAtTime(0.001, ahora);
+    gBlip.gain.exponentialRampToValueAtTime(0.3, ahora+0.01);
+    gBlip.gain.exponentialRampToValueAtTime(0.0001, ahora+0.04);
+    blip.start(ahora); blip.stop(ahora+0.05);
+
+    // Ping electrónico que barre en frecuencia — el cuerpo principal, sonido de radar/sonar
+    var ping = ctx.createOscillator(), gPing = ctx.createGain();
+    ping.type = 'sawtooth';
+    ping.frequency.setValueAtTime(1400, ahora+0.05);
+    ping.frequency.exponentialRampToValueAtTime(500, ahora+0.55);
+    ping.connect(gPing); gPing.connect(ctx.destination); gPing.connect(delay);
+    gPing.gain.setValueAtTime(0.0001, ahora+0.05);
+    gPing.gain.exponentialRampToValueAtTime(0.32, ahora+0.08);
+    gPing.gain.exponentialRampToValueAtTime(0.0001, ahora+0.65);
+    ping.start(ahora+0.05); ping.stop(ahora+0.68);
+
+    // Capa fina de sub-tono para dar cuerpo electrónico (no solo agudo)
+    var sub = ctx.createOscillator(), gSub = ctx.createGain();
+    sub.type = 'square'; sub.frequency.value = 220;
+    sub.connect(gSub); gSub.connect(ctx.destination);
+    gSub.gain.setValueAtTime(0.0001, ahora+0.05);
+    gSub.gain.exponentialRampToValueAtTime(0.1, ahora+0.08);
+    gSub.gain.exponentialRampToValueAtTime(0.0001, ahora+0.5);
+    sub.start(ahora+0.05); sub.stop(ahora+0.52);
+  }catch(e){}
+}
+
+function mostrarPedidoEntrante(){
+  if(!pedPend) return;
+  var lav = LAVS.find(function(l){return l.n===pedPend.lav;}) || LAVS[0];
+  var inc = document.getElementById('incoming');
+  if(!inc) return;
+  // Rellenar datos
+  var ipPrice = document.getElementById('ip-price');
+  var ipServ = document.getElementById('ip-serv');
+  var ipLav = document.getElementById('ip-lav');
+  var ipAddr = document.getElementById('ip-addr');
+  var ipCodigo = document.getElementById('ip-codigo');
+  if(ipPrice) ipPrice.textContent = pedPend.precio;
+  if(ipServ) ipServ.textContent = pedPend.serv;
+  if(ipLav) ipLav.textContent = pedPend.lav;
+  if(ipAddr) ipAddr.textContent = lav ? lav.addr : pedPend.dir;
+  // Código de verificación de 2 dígitos — el cliente lo tiene que decir en voz alta
+  var codigoDelCliente = pedPend.codigo || '—';
+  if(ipCodigo) ipCodigo.textContent = codigoDelCliente;
+  inc.classList.add('show');
+  if(navigator.vibrate) navigator.vibrate([500,200,500,200,500]);
+  // SONIDO — el beep que avisa al rider
+  try{ sonidoPedidoEntrante(); }catch(e){}
+  setTimeout(function(){ try{ sonidoPedidoEntrante(); }catch(e){}; }, 800);
+  // Leer el código en voz alta al rider
+  if(codigoDelCliente && codigoDelCliente !== '—'){
+    var digitos = codigoDelCliente.split('').join(', ');
+    hablar('Nuevo pedido. Código del cliente: '+digitos+'.');
+  } else {
+    hablar('Nuevo pedido disponible.');
+  }
+  if(_ringIv) clearInterval(_ringIv);
+  // Intervalo adaptativo: mientras el pedido espira, repite cada 4s (urgente)
+  _ringIv = setInterval(function(){
+    if(!pedPend){ clearInterval(_ringIv); _ringIv=null; return; }
+    try{ sonidoPedidoEntrante(); }catch(se){}
+    if(codigoDelCliente && codigoDelCliente !== '—'){
+      var digitos = codigoDelCliente.split('').join(', ');
+      hablar('Nuevo pedido. Código: '+digitos+'.');
+    } else {
+      hablar('Nuevo pedido disponible.');
+    }
+    if(navigator.vibrate) navigator.vibrate([300,150,300]);
+  }, tiempoRing());
+  // Countdown
+  expSec=20; clearInterval(expIv);
+  var fill = document.getElementById('ip-fill');
+  var expEl = document.getElementById('ip-exp');
+  expIv=setInterval(function(){
+    expSec--;
+    if(fill) fill.style.width=((expSec/20)*100)+'%';
+    if(expEl) expEl.textContent=expSec+'s';
+    if(expSec<=0){clearInterval(expIv);reject();}
+  },1000);
+}
+
+// Marcar pedido como aceptado en Firebase
+function editarNotaViaje(){
+  var box = document.getElementById('nota-viaje-box');
+  if(!box) return;
+  var visible = box.style.display !== 'none';
+  box.style.display = visible ? 'none' : 'block';
+  if(!visible){
+    var txt = document.getElementById('nota-viaje-txt');
+    if(txt){
+      txt.value = pedActivo && pedActivo.nota ? pedActivo.nota : '';
+      setTimeout(function(){ txt.focus(); }, 100);
+    }
+  }
+}
+
+function guardarNotaViaje(){
+  try{
+    var txt = document.getElementById('nota-viaje-txt');
+    if(!txt || !pedActivo) return;
+    var nota = txt.value.trim();
+    pedActivo.nota = nota;
+    // Actualizar en Firebase
+    var tabla = pedActivo.esDespacho ? 'despachos' : 'pedidos';
+    fetch('https://lavobcn-default-rtdb.europe-west1.firebasedatabase.app/'+tabla+'/'+pedActivo.ref+'.json',{
+      method:'PATCH', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({nota: nota, notaRider: nota})
+    }).catch(function(){});
+    document.getElementById('nota-viaje-box').style.display = 'none';
+    showToast('✅ Nota guardada');
+  }catch(e){ console.warn('[guardarNotaViaje]', e); }
+}
+
+function aceptarEnFirebase(ref, esDespacho){
+  if(!ref) return;
+  var tabla = esDespacho ? 'despachos' : 'pedidos';
+  // Actualizar estado en Firebase — esto dispara el EventSource del cliente inmediatamente
+  try{
+    fetch('https://lavobcn-default-rtdb.europe-west1.firebasedatabase.app/'+tabla+'/'+ref+'.json', {
+      method:'PATCH', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({estado:'aceptado', rider: nombre||'rider', riderKey: userKey||''})
+    }).then(function(){
+      // Notificar al admin y al cliente via push
+      var _dirAcept = (pedActivo && (pedActivo.dirCliente || pedActivo.dir)) || '—';
+      var _lavAcept = (pedActivo && pedActivo.lav) || '—';
+      var _telAcept = (pedActivo && pedActivo.telCliente) || '—';
+      var msgAcept = '✅ *PEDIDO ACEPTADO*\n'+
+        '📋 Ref: '+ref+'\n'+
+        '👤 Cliente: '+_telAcept+'\n'+
+        '📍 Dirección: '+_dirAcept+'\n'+
+        '🏪 Lavandería: '+_lavAcept+'\n'+
+        '🛵 Rider: '+(nombre||'rider')+'\n'+
+        '📌 Estado: Aceptado\n'+
+        '⏰ '+new Date().toLocaleString('es-ES',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+      // Push via worker — llega aunque cliente tenga app cerrada
+      fetch('https://lavo-notificador.jeffreelancer31.workers.dev/enviar', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({rol:'cliente', title:'✅ ¡Viaje aceptado!', body:'Tu rider '+(nombre||'está')+ ' en camino · Ref: '+ref})
+      }).catch(function(){});
+      // WhatsApp al admin via worker
+      fetch('https://lavo-notificador.jeffreelancer31.workers.dev/whatsapp', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({text: msgAcept})
+      }).catch(function(){});
+    }).catch(function(){});
+  }catch(e){}
+  try{
+    if(fbDBR){ fbDBR.ref(tabla+'/'+ref+'/estado').set('aceptado'); fbDBR.ref(tabla+'/'+ref+'/rider').set(nombre||'rider'); fbDBR.ref(tabla+'/'+ref+'/riderKey').set(userKey||''); }
+  }catch(e){}
+}
+
+initFirebaseRider();
+
+// ═══════════════════════════════════════
+// LAVOBCN RIDER · SISTEMA LLAMADAS
+// ═══════════════════════════════════════
+
+function mostrarLlamadaAuto(tel, ref, tipo){
+  tipo = tipo || 'pedido';
+  var old = document.getElementById('modal-llamada-rider');
+  if(old) old.remove();
+
+  var m = document.createElement('div');
+  m.id = 'modal-llamada-rider';
+  m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:700;display:flex;align-items:center;justify-content:center;padding:20px;';
+
+  var msgWA = encodeURIComponent('Hola soy tu rider de LavoBCN. He llegado con tu ' + tipo + ' ' + ref + '. Estoy esperando abajo.');
+  var telLimpio = tel.replace(/[^0-9]/g,'');
+
+  m.innerHTML =
+    '<div style="background:#161b22;border:2px solid #10b981;border-radius:22px;padding:26px 20px;width:100%;max-width:340px;text-align:center;">'
+    + '<div style="font-size:52px;margin-bottom:10px;animation:ring 1s ease infinite;">📞</div>'
+    + '<div style="font-size:11px;font-weight:800;color:#10b981;letter-spacing:.08em;margin-bottom:6px;">¡CLIENTE ESPERANDO!</div>'
+    + '<div style="font-size:18px;font-weight:900;color:#fff;margin-bottom:4px;">Llama al cliente</div>'
+    + '<div style="font-size:12px;color:#64748b;margin-bottom:20px;">' + ref + ' · Ya estás en su dirección</div>'
+
+    // LLAMAR — acción principal
+    + '<a href="tel:' + tel + '" onclick="cerrarLlamadaRider()" style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:16px;border-radius:14px;background:linear-gradient(135deg,#2563eb,#10b981);color:#fff;text-decoration:none;font-size:17px;font-weight:900;margin-bottom:10px;box-shadow:0 4px 16px rgba(37,99,235,.4);">'
+    + '📞 Llamar ahora'
+    + '</a>'
+
+    // WHATSAPP
+    + '<a href="https://wa.me/' + telLimpio + '?text=' + msgWA + '" target="_blank" onclick="cerrarLlamadaRider()" style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:14px;border-radius:14px;background:#25D366;color:#fff;text-decoration:none;font-size:15px;font-weight:800;margin-bottom:14px;">'
+    + '💬 WhatsApp'
+    + '</a>'
+
+    // Info
+    + '<div style="background:#0d1117;border-radius:10px;padding:10px 12px;margin-bottom:14px;text-align:left;">'
+    + '<div style="font-size:11px;color:#64748b;line-height:1.6;">⏱ Espera máximo <b style="color:#fff">2 minutos</b><br>📵 Si no contesta: espera 1 min más<br>🔄 Sin respuesta: reagendamos con el cliente</div>'
+    + '</div>'
+
+    + '<button onclick="cerrarLlamadaRider()" style="width:100%;padding:12px;border-radius:14px;background:#1e293b;color:#64748b;border:1px solid #334155;font-size:14px;cursor:pointer;font-family:inherit;">Ya contacté · Continuar</button>'
+    + '</div>';
+
+  document.body.appendChild(m);
+  if(navigator.vibrate) navigator.vibrate([300,150,300,150,300]);
+
+  // Auto-llamar a los 2 segundos
+  setTimeout(function(){
+    if(document.getElementById('modal-llamada-rider')){
+      window.location.href = 'tel:' + tel;
+    }
+  }, 2000);
+}
+
+function cerrarLlamadaRider(){
+  var m = document.getElementById('modal-llamada-rider');
+  if(m) m.remove();
+}
+
+// CSS animación ring
+var rStyleEl = document.createElement('style');
+rStyleEl.textContent = '@keyframes ring{0%,100%{transform:rotate(0deg)}20%{transform:rotate(-15deg)}40%{transform:rotate(15deg)}60%{transform:rotate(-10deg)}80%{transform:rotate(10deg)}}';
+document.head.appendChild(rStyleEl);
+
+
+// ── CREDENCIALES ──
+var CREDS={'lavo00001':'casa1300','lavo00002':'casa1300','lavo00003':'casa1300','lavo00004':'casa1300','lavo00005':'casa1300','lavo00006':'casa1300','lavo00007':'casa1300','lavo00008':'casa1300','lavo00009':'casa1300','lavo00010':'casa1300','lavo00011':'casa1300','lavo00012':'casa1300','lavo00013':'casa1300','lavo00014':'casa1300','lavo00015':'casa1300','lavo00016':'casa1300','lavo00017':'casa1300','lavo00018':'casa1300','lavo00019':'casa1300','lavo00020':'casa1300'};
+var NAMES={'lavo00001':'Jeffrey','lavo00002':'Rider 2','lavo00003':'Rider 3','lavo00004':'Rider 4','lavo00005':'Rider 5','lavo00006':'Rider 6','lavo00007':'Rider 7','lavo00008':'Rider 8','lavo00009':'Rider 9','lavo00010':'Rider 10','lavo00011':'Rider 11','lavo00012':'Rider 12','lavo00013':'Rider 13','lavo00014':'Rider 14','lavo00015':'Rider 15','lavo00016':'Rider 16','lavo00017':'Rider 17','lavo00018':'Rider 18','lavo00019':'Rider 19','lavo00020':'Rider 20'};
+var LAVS=[{n:'Perfect Clean',addr:'Pg. del Taulat, 279A, 08019 Barcelona',lat:41.4006,lng:2.2073,tel:'+34930000001'},{n:'Tintorería Prim',addr:'Carrer del Maresme, 60, 08019 Barcelona',lat:41.4036,lng:2.1980,tel:'+34933030435'},{n:'Dolce & Gabbana',addr:'Pg. de Gràcia, 95, Eixample, 08008 Barcelona',lat:41.3954,lng:2.1618,tel:'+34934672256'}];
+var AUTO={'pedido':['✅ Dame más detalles. ¿Qué pedido?'],'rider':['🆘 Buscando rider disponible ahora mismo.'],'acc':['🚨 ¿Estás bien? ¿Necesitas ayuda urgente?'],'app':['📱 Cuéntame qué falla.'],'pago':['💵 ¿Qué duda tienes sobre el pago?']};
+
+// ── ESTADO ──
+var nombre='Rider Demo',userKey='lavo2001',stOn=false,mapObj=null,rMark=null,aCircle=null;
+var pedActivo=null,pedPend=null,expIv=null,expSec=20,incMap=null,incMark=null;
+var viajes=0,euros=0,propinas=0,unread=0,tcOk=false,vehSel='',fueraZona=false;
+var ZONA={minLat:41.32,maxLat:41.47,minLng:2.05,maxLng:2.27};
+
+function genRef(){var d=new Date();return 'LV-'+String(d.getFullYear()).slice(2)+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')+'-'+Math.floor(1000+Math.random()*9000);}
+function hora(){return new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});}
+
+// ── LOGIN ──
+// Restaurar usuario guardado al cargar el login (pero NUNCA la clave)
+(function restaurarUsuario(){
+  try{
+    var usuarioGuardado = localStorage.getItem('lavobcn_rider_usuario');
+    if(usuarioGuardado){
+      var inputUser = document.getElementById('lr');
+      if(inputUser) inputUser.value = usuarioGuardado;
+      // Poner foco directo en la clave si el usuario ya está relleno
+      setTimeout(function(){
+        var inputClave = document.getElementById('lc');
+        if(inputClave) inputClave.focus();
+      }, 100);
+    }
+  }catch(e){}
+})();
+
+document.getElementById('lbtn').addEventListener('click', doLogin);
+document.getElementById('lc').addEventListener('keyup', function(e){if(e.key==='Enter') doLogin();});
+document.getElementById('lr').addEventListener('keyup', function(e){if(e.key==='Enter') document.getElementById('lc').focus();});
+
+function doLogin(){
+  try {
+    var u=(document.getElementById('lr').value||'').trim().toLowerCase();
+    var p=(document.getElementById('lc').value||'').trim();
+    var err=document.getElementById('lerr');
+    if(!CREDS[u]||CREDS[u]!==p){
+      if(err){err.textContent='Usuario o código incorrecto.';err.style.display='block';}
+      return;
+    }
+    if(err) err.style.display='none';
+    nombre=NAMES[u]||u; userKey=u;
+    // Recordar el usuario para la próxima vez — la clave NUNCA se guarda
+    try{ localStorage.setItem('lavobcn_rider_usuario', u); }catch(e){}
+    var sl=document.getElementById('screen-login');
+    var ap=document.getElementById('app');
+    if(sl) sl.style.display='none';
+    if(ap) ap.style.display='block';
+    var sbn=document.getElementById('sb-name');
+    var sbu=document.getElementById('sb-user');
+    if(sbn) sbn.textContent=nombre;
+    if(sbu) sbu.textContent=userKey;
+    try{ localStorage.setItem('lavobcn_rider_sesion', userKey); }catch(e){}
+    iniciarApp();
+    cargarGananciasRider();
+    // Los avisos se activan al pulsar CONECTAR (estilo Uber)
+  } catch(e){
+    console.log('Login error:',e);
+    // Forzar entrada aunque falle
+    var sl=document.getElementById('screen-login');
+    var ap=document.getElementById('app');
+    if(sl) sl.style.display='none';
+    if(ap) ap.style.display='block';
+    try { iniciarApp(); } catch(e2){}
+  }
+}
+
+function logout(){
+  nombre=''; userKey='';
+  try{
+    localStorage.removeItem('lavobcn_rider_sesion');
+    localStorage.removeItem('lavobcn_rider_usuario'); // borrar usuario al cerrar sesión
+  }catch(e){}
+  window.location.href='index.html';
+}
+
+function intentarSesionGuardada(){
+  try{
+    var u = localStorage.getItem('lavobcn_rider_sesion');
+    if(!u || !CREDS[u]) return false;
+    nombre=NAMES[u]||u; userKey=u;
+    var sl=document.getElementById('screen-login');
+    var ap=document.getElementById('app');
+    if(sl) sl.style.display='none';
+    if(ap) ap.style.display='block';
+    var sbn=document.getElementById('sb-name');
+    var sbu=document.getElementById('sb-user');
+    if(sbn) sbn.textContent=nombre;
+    if(sbu) sbu.textContent=userKey;
+    iniciarApp();
+    cargarGananciasRider();
+    return true;
+  }catch(e){ return false; }
+}
+// (la verificación de sesión ahora ocurre dentro de arrancarRider, en el orden correcto)
+
+// ── ONBOARDING ──
+function processSelfie(inp){
+  if(inp.files&&inp.files[0]){var r=new FileReader();r.onload=function(e){var img=document.getElementById('selfie-prev');img.src=e.target.result;img.style.display='block';document.getElementById('selfie-hint').style.display='none';document.getElementById('selfie-box').classList.add('done');localStorage.setItem('selfie_'+userKey,e.target.result);};r.readAsDataURL(inp.files[0]);}
+}
+function selVeh(btn,v){document.querySelectorAll('.veh-btn').forEach(function(b){b.classList.remove('sel');});btn.classList.add('sel');vehSel=v;}
+function toggleTC(){tcOk=!tcOk;var ch=document.getElementById('tc-chk');ch.textContent=tcOk?'✓':'';ch.style.background=tcOk?'var(--blue)':'#fff';ch.style.borderColor=tcOk?'var(--blue)':'#e2e8f0';ch.style.color='#fff';}
+function guardarPerfil(){
+  if(!localStorage.getItem('selfie_'+userKey)){showToast('⚠ Selfie obligatoria');return;}
+  if(!document.getElementById('ob-nombre').value.trim()){showToast('⚠ Nombre obligatorio');return;}
+  if(!document.getElementById('ob-tel').value.trim()){showToast('⚠ Teléfono obligatorio');return;}
+  if(!tcOk){showToast('⚠ Acepta los Términos y Condiciones');return;}
+  var p={nombre:document.getElementById('ob-nombre').value+' '+document.getElementById('ob-apellido').value,tel:document.getElementById('ob-tel').value,email:document.getElementById('ob-email').value,dir:document.getElementById('ob-dir').value,vehiculo:vehSel||'🛵 Moto',matricula:document.getElementById('ob-mat').value,usuario:userKey,fecha:new Date().toISOString()};
+  localStorage.setItem('profile_'+userKey,JSON.stringify(p));
+  document.getElementById('onboarding').classList.remove('show');
+  iniciarApp();
+  showToast('✅ Perfil guardado. ¡Bienvenido!');
+}
+
+// ── APP ──
+// Detectar iOS abierto desde Safari (no PWA) y mostrar instrucciones
+(function detectarIOS(){
+  try{
+    var esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    var esPWA = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+    if(esIOS && !esPWA){
+      var banner = document.getElementById('ios-install-banner');
+      if(banner) banner.style.display = 'block';
+    }
+  }catch(e){}
+})();
+
+// ── SINCRONIZAR GANANCIAS — botón ↻ en topbar ──
+async function sincronizarGanancias(){
+  var btn = document.getElementById('btn-sync');
+  if(btn) btn.classList.add('syncing');
+  var hoy = new Date().toISOString().slice(0,10);
+  try{
+    // Guardar estado actual en localStorage SIEMPRE (offline o no)
+    var estado = {ts: Date.now(), viajes: viajes, euros: euros, dia: hoy};
+    localStorage.setItem('lavobcn_as_rider', JSON.stringify(estado));
+
+    // Intentar sincronizar con Firebase
+    try{
+      var putR = await fetch('https://lavobcn-default-rtdb.europe-west1.firebasedatabase.app/autosave/rider.json', {
+        method:'PUT', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(estado)
+      });
+      var getR = await fetch('https://lavobcn-default-rtdb.europe-west1.firebasedatabase.app/autosave/rider.json');
+      var d = await getR.json();
+      if(d && d.dia === hoy){
+        var vMax = Math.max(viajes, d.viajes||0);
+        var eMax = Math.max(euros, d.euros||0);
+        viajes = vMax; euros = eMax;
+        var sv = document.getElementById('sb-v');
+        var se = document.getElementById('sb-e');
+        if(sv) sv.textContent = viajes;
+        if(se) se.textContent = euros+'€';
+        localStorage.setItem('lavobcn_as_rider', JSON.stringify({ts:Date.now(), viajes:viajes, euros:euros, dia:hoy}));
+        showToast('✅ '+viajes+' viajes · '+euros+'€ sincronizados');
+      }
+    }catch(eNet){
+      // Sin internet — mostrar lo que hay en local
+      showToast('📱 Local: '+viajes+' viajes · '+euros+'€ (sin internet)');
+    }
+  }catch(e){ showToast('📱 '+viajes+' viajes · '+euros+'€'); }
+  finally{ if(btn) setTimeout(function(){ btn.classList.remove('syncing'); }, 600); }
+}
+
+function iniciarApp(){
+  setTimeout(initMap,50);
+  iniciarGPS();
+  pedirNotif();
+  initChat();
+  actualizarBadgeMensajesRider();
+  setInterval(actualizarBadgeMensajesRider, 8000);
+  estadoUI(false);
+  // Restaurar ganancias del día desde autosave
+  restaurarDatosRider();
+}
+
+// ── DATOS RECUPERADOS MANUALMENTE — 7 julio 2026 ──
+// 88€ · 22 viajes (1-7 julio, 5 días laborables, hoy 3 entregas)
+var DATOS_RECUPERADOS = { dia:'2026-07-07', euros:88, viajes:22 };
+
+function restaurarDatosRider(){
+  try{
+    var hoy = new Date().toISOString().slice(0,10);
+
+    // Si es el día de los datos recuperados y lo local es menor → aplicar 88€
+    if(hoy === DATOS_RECUPERADOS.dia){
+      var rawPrev = localStorage.getItem('lavobcn_as_rider');
+      var prev = null;
+      try{ prev = rawPrev ? JSON.parse(rawPrev) : null; }catch(e){}
+      var eurosPrev = (prev && prev.dia===hoy) ? (prev.euros||0) : 0;
+      if(eurosPrev < DATOS_RECUPERADOS.euros){
+        viajes = DATOS_RECUPERADOS.viajes;
+        euros = DATOS_RECUPERADOS.euros;
+        var estadoRec = {ts:Date.now(), viajes:viajes, euros:euros, dia:hoy};
+        localStorage.setItem('lavobcn_as_rider', JSON.stringify(estadoRec));
+        var svR=document.getElementById('sb-v'), seR=document.getElementById('sb-e');
+        if(svR) svR.textContent = viajes;
+        if(seR) seR.textContent = euros+'€';
+        showToast('✅ Recuperado: '+viajes+' viajes · '+euros+'€');
+        // Subir también a Firebase para todos los dispositivos
+        fetch('https://lavobcn-default-rtdb.europe-west1.firebasedatabase.app/autosave/rider.json',{
+          method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(estadoRec)
+        }).catch(function(){});
+        return;
+      }
+    }
+
+    // 1. INMEDIATO — leer de localStorage primero (funciona offline)
+    var raw = localStorage.getItem('lavobcn_as_rider');
+    if(raw){
+      var local = JSON.parse(raw);
+      var savedDate = local.ts ? new Date(local.ts).toISOString().slice(0,10) : '';
+      if(savedDate === hoy && (local.viajes > 0 || local.euros > 0)){
+        viajes = local.viajes || 0;
+        euros = local.euros || 0;
+        var sv = document.getElementById('sb-v');
+        var se = document.getElementById('sb-e');
+        if(sv) sv.textContent = viajes;
+        if(se) se.textContent = euros + '€';
+        if(viajes > 0 || euros > 0){
+          showToast('✅ Restaurado localmente: ' + viajes + ' viajes · ' + euros + '€');
+        }
+      }
+    }
+
+    // 2. EN SEGUNDO PLANO — intentar sincronizar con Firebase
+    fetch('https://lavobcn-default-rtdb.europe-west1.firebasedatabase.app/autosave/rider.json')
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if(!d || !d.ts) return;
+        var savedDate = new Date(d.ts).toISOString().slice(0,10);
+        if(savedDate !== hoy) return;
+        // Tomar el MÁXIMO entre local y remoto
+        var vMax = Math.max(viajes, d.viajes||0);
+        var eMax = Math.max(euros, d.euros||0);
+        if(vMax > viajes || eMax > euros){
+          viajes = vMax; euros = eMax;
+          var sv = document.getElementById('sb-v');
+          var se = document.getElementById('sb-e');
+          if(sv) sv.textContent = viajes;
+          if(se) se.textContent = euros + '€';
+          showToast('✅ Sincronizado: ' + viajes + ' viajes · ' + euros + '€');
+          // Guardar el máximo en localStorage también
+          var estado = {ts: Date.now(), viajes: viajes, euros: euros, dia: hoy};
+          localStorage.setItem('lavobcn_as_rider', JSON.stringify(estado));
+        }
+      })
+      .catch(function(){ /* sin internet — datos locales ya cargados */ });
+  }catch(e){ console.warn('[restaurarDatosRider]', e); }
+}
+
+// ── MAPA ──
+function initMap(){
+  try {
+    if(typeof L==='undefined'){ console.log('Leaflet no cargó (mapa omitido)'); return; }
+    if(mapObj){ mapObj.invalidateSize(); return; } // evitar doble init
+    mapObj=L.map('map',{zoomControl:false,attributionControl:false,tap:false});
+    mapObj.setView([41.402,2.200],15);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{maxZoom:19,subdomains:'abcd'}).addTo(mapObj);
+    LAVS.forEach(function(l){
+      var html='<div style="display:flex;flex-direction:column;align-items:center;"><div style="width:48px;height:48px;border-radius:50%;background:#10b981;display:flex;align-items:center;justify-content:center;font-size:22px;border:3px solid #fff;box-shadow:0 4px 16px rgba(16,185,129,.5);">🏪</div><div style="width:2px;height:8px;background:#10b981;"></div><div style="width:8px;height:8px;border-radius:50%;background:#10b981;"></div></div>';
+      L.divIcon&&L.marker([l.lat,l.lng],{icon:L.divIcon({html:html,className:'',iconSize:[48,64],iconAnchor:[24,64]})}).addTo(mapObj).bindPopup('<b>'+l.n+'</b><br>'+l.addr);
+    });
+    L.rectangle([[ZONA.minLat,ZONA.minLng],[ZONA.maxLat,ZONA.maxLng]],{color:'#2563eb',weight:1,fill:true,fillColor:'#dbeafe',fillOpacity:.1,dashArray:'6 4'}).addTo(mapObj);
+    setTimeout(function(){if(mapObj)mapObj.invalidateSize();},200);
+  } catch(e){ console.log('Mapa no disponible:', e); }
+}
+
+function centrar(){if(mapObj&&rMark)mapObj.setView(rMark.getLatLng(),17);}
+
+// ── GPS ──
+function iniciarGPS(){
+  if(!navigator.geolocation)return;
+  navigator.geolocation.watchPosition(function(pos){
+    var lat=pos.coords.latitude,lng=pos.coords.longitude,acc=pos.coords.accuracy;
+    if(!rMark){
+      var ico=L.divIcon({html:'<div style="width:18px;height:18px;border-radius:50%;background:#2563eb;border:3px solid #fff;box-shadow:0 2px 12px rgba(37,99,235,.6);"></div>',className:'',iconSize:[18,18],iconAnchor:[9,9]});
+      rMark=L.marker([lat,lng],{icon:ico}).addTo(mapObj);
+      mapObj.setView([lat,lng],16);
+    } else rMark.setLatLng([lat,lng]);
+    if(aCircle)aCircle.remove();
+    aCircle=L.circle([lat,lng],{radius:acc,color:'#2563eb',fillColor:'#dbeafe',fillOpacity:.15,weight:1}).addTo(mapObj);
+    var enZ=lat>=ZONA.minLat&&lat<=ZONA.maxLat&&lng>=ZONA.minLng&&lng<=ZONA.maxLng;
+    if(!enZ&&!fueraZona){fueraZona=true;showToast('⚠️ Saliste de la zona');addAdmin('⚠️ '+nombre+' salió de la zona de reparto.');}
+    else if(enZ&&fueraZona){fueraZona=false;addAdmin('✅ '+nombre+' volvió a la zona.', null, true);}
+  },function(){},{enableHighAccuracy:true,maximumAge:3000,timeout:15000});
+}
+
+// ── ESTADO ──
+// ── CONECTAR / DESCONECTAR (estilo Uber) ──
+function estadoUI(on){
+  stOn = on;
+  var dot=document.getElementById('tb-dot'), val=document.getElementById('tb-val');
+  var sbl=document.getElementById('sb-st-lbl'), btn=document.getElementById('btn-conectar');
+  var search=document.getElementById('bs-search');
+  if(dot) dot.className='tb-dot'+(on?'':' off');
+  if(val) val.textContent=on?'Conectado':'Desconectado';
+  if(sbl) sbl.textContent=on?'Desconectarme':'Conectarme';
+  if(btn){ btn.textContent=on?'DESCONECTAR':'CONECTAR'; btn.className='btn-conectar'+(on?' on':''); }
+  // El panel "buscando pedidos" solo cuando está conectado y sin pedido activo
+  if(search && !pedActivo) search.style.display = on ? 'block' : 'none';
+}
+
+function sonidoConectar(conectando){
+  try{
+    var ctx=obtenerAudioCtx(); if(!ctx) return;
+    var ahora = ctx.currentTime;
+
+    // ── Compresor maestro: permite subir el volumen sin que se distorsione ──
+    var comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -12; comp.knee.value = 18; comp.ratio.value = 8;
+    comp.attack.value = 0.003; comp.release.value = 0.3;
+    comp.connect(ctx.destination);
+
+    // ── ECO REAL: delay + feedback (cada golpe se repite varias veces, apagándose) ──
+    var delay = ctx.createDelay(1.0);
+    delay.delayTime.value = 0.22;
+    var feedback = ctx.createGain();
+    feedback.gain.value = 0.6; // cuánto se repite el eco antes de apagarse
+    var salidaEco = ctx.createGain();
+    salidaEco.gain.value = 1.1;
+    delay.connect(feedback); feedback.connect(delay); // el bucle que genera el eco
+    delay.connect(salidaEco); salidaEco.connect(comp);
+
+    // ── Golpe principal del "tambor", grave y MUY fuerte ──
+    var tambor = ctx.createOscillator(), gT = ctx.createGain();
+    tambor.type = 'sine';
+    tambor.connect(gT); gT.connect(comp); gT.connect(delay); // también manda al eco
+    if(conectando){
+      tambor.frequency.setValueAtTime(85, ahora);
+      tambor.frequency.exponentialRampToValueAtTime(150, ahora+0.25); // "poffff" subiendo
+    } else {
+      tambor.frequency.setValueAtTime(150, ahora);
+      tambor.frequency.exponentialRampToValueAtTime(65, ahora+0.6); // "plommmm" bajando
+    }
+    gT.gain.setValueAtTime(0.0001, ahora);
+    gT.gain.exponentialRampToValueAtTime(conectando ? 1.7 : 1.3, ahora+0.04); // golpe contundente, conectar pega más
+    gT.gain.exponentialRampToValueAtTime(0.0001, ahora+1.3);
+    tambor.start(ahora); tambor.stop(ahora+1.3);
+
+    // ── Capa de cuerpo medio, da presencia y fuerza al golpe ──
+    var cuerpo = ctx.createOscillator(), gC = ctx.createGain();
+    cuerpo.type = 'triangle';
+    cuerpo.frequency.value = conectando ? 220 : 160;
+    cuerpo.connect(gC); gC.connect(comp); gC.connect(delay);
+    gC.gain.setValueAtTime(0.0001, ahora);
+    gC.gain.exponentialRampToValueAtTime(conectando ? 0.9 : 0.7, ahora+0.03);
+    gC.gain.exponentialRampToValueAtTime(0.0001, ahora+0.7);
+    cuerpo.start(ahora); cuerpo.stop(ahora+0.7);
+
+    // Si conecta, nota aguda corta de confirmación, también con eco — más fuerte
+    if(conectando){
+      var brillo = ctx.createOscillator(), gB = ctx.createGain();
+      brillo.type = 'sine'; brillo.frequency.value = 880;
+      brillo.connect(gB); gB.connect(comp); gB.connect(delay);
+      var t2 = ahora + 0.28;
+      gB.gain.setValueAtTime(0.0001, t2);
+      gB.gain.exponentialRampToValueAtTime(0.9, t2+0.02);
+      gB.gain.exponentialRampToValueAtTime(0.0001, t2+0.35);
+      brillo.start(t2); brillo.stop(t2+0.37);
+    }
+  }catch(e){}
+}
+
+function abrirConfiguracion(){
+  try{
+    document.getElementById('config-ov').style.display = 'flex';
+    pintarEstadoAvisos();
+    pintarToggleGpsNotif();
+    pintarMapaPreferido();
+  }catch(e){ console.warn('[abrirConfiguracion]', e); }
+}
+
+function abrirZonaReparto(){
+  try{
+    document.getElementById('zona-ov').style.display = 'flex';
+    var cont = document.getElementById('lista-zona');
+    cont.innerHTML = LAVS.map(function(l){
+      return '<div style="background:var(--card);border:1px solid var(--bdr);border-radius:12px;padding:13px;margin-bottom:9px;">'+
+        '<div style="font-size:14px;font-weight:800;color:#fff;">🏪 '+l.n+'</div>'+
+        '<div style="font-size:12px;color:var(--dim);margin-top:4px;">'+l.addr+'</div>'+
+      '</div>';
+    }).join('');
+  }catch(e){ console.warn('[abrirZonaReparto]', e); }
+}
+
+// ── VIAJES ASIGNADOS DIRECTAMENTE POR ADMIN ──
+var _viajesAsigVistos = {};
+async function revisarViajesAsignados(){
+  try{
+    if(!stOn || !userKey) return;
+    var r = await fetch('https://lavobcn-default-rtdb.europe-west1.firebasedatabase.app/despachos.json?orderBy="riderKey"&equalTo="'+userKey+'"');
+    var data = await r.json() || {};
+    var pendientes = Object.values(data).filter(function(d){ return d && d.estado==='pendiente' && d.asignadoManual===true && d.riderKey===userKey; });
+    var badge = document.getElementById('badge-viajes-asig');
+    if(badge){
+      if(pendientes.length){ badge.textContent = pendientes.length; badge.style.display = 'inline-block'; }
+      else { badge.style.display = 'none'; }
+    }
+    pendientes.forEach(function(d){
+      if(!_viajesAsigVistos[d.ref]){
+        _viajesAsigVistos[d.ref] = true;
+        sonidoTripRadar();
+        hablar('Tienes un nuevo viaje asignado.');
+      }
+    });
+  }catch(e){ console.warn('[revisarViajesAsignados]', e); }
+}
+
+async function abrirViajesAsignados(){
+  try{
+    document.getElementById('viajes-asig-ov').style.display = 'flex';
+    var cont = document.getElementById('lista-viajes-asig');
+    cont.innerHTML = '<div style="text-align:center;color:var(--sub);font-size:13px;padding:20px 0;">Cargando…</div>';
+    var r = await fetch('https://lavobcn-default-rtdb.europe-west1.firebasedatabase.app/despachos.json?orderBy="riderKey"&equalTo="'+userKey+'"');
+    var data = await r.json() || {};
+    var pendientes = Object.values(data).filter(function(d){ return d && d.estado==='pendiente' && d.asignadoManual===true && d.riderKey===userKey; });
+    pendientes.sort(function(a,b){ return (b.ts||0)-(a.ts||0); });
+
+    if(!pendientes.length){
+      cont.innerHTML = '<div style="text-align:center;color:var(--sub);font-size:13px;padding:30px 0;">📭 No tienes viajes asignados pendientes.</div>';
+      return;
+    }
+    cont.innerHTML = pendientes.map(function(d){
+      var primeraParada = (d.paradas && d.paradas[0]) || {};
+      return '<div style="background:var(--card);border:1px solid var(--bdr);border-radius:12px;padding:13px;margin-bottom:9px;position:relative;">'+
+        '<div onclick="document.getElementById(\'viajes-asig-ov\').style.display=\'none\';iniciarViajeAsignado(\''+d.ref+'\')" style="cursor:pointer;">'+
+          '<div style="display:flex;justify-content:space-between;align-items:flex-start;">'+
+            '<div><div style="font-size:13px;font-weight:800;color:#fff;">'+(d.lavanderia||'LavoBCN')+'</div>'+
+            '<div style="font-size:11px;color:var(--dim);margin-top:3px;">📍 '+(primeraParada.dest||'')+'</div></div>'+
+            '<div style="font-size:15px;font-weight:900;color:#10b981;white-space:nowrap;">'+(d.coste_rider||0)+'€</div>'+
+          '</div>'+
+          '<div style="font-size:11px;color:var(--sub);margin-top:8px;">Toca para empezar →</div>'+
+        '</div>'+
+        '<div onclick="eliminarViajeAsignado(\''+d.ref+'\')" style="position:absolute;top:10px;right:10px;font-size:18px;color:var(--sub);cursor:pointer;padding:4px;">✕</div>'+
+      '</div>';
+    }).join('');
+  }catch(e){ console.warn('[abrirViajesAsignados]', e); }
+}
+
+function iniciarViajeAsignado(ref){
+  try{
+    fetch('https://lavobcn-default-rtdb.europe-west1.firebasedatabase.app/despachos/'+ref+'.json').then(function(r){return r.json();}).then(function(d){
+      if(!d) return;
+      var primeraParada = (d.paradas && d.paradas[0]) || {};
+      mostrarPedido({
+        ref: d.ref, lav: d.lavanderia || 'LavoBCN', dir: primeraParada.dest || '',
+        precio: d.coste_rider || 0, esDespacho: true
+      });
+      aceptarEnFirebase(ref, true);
+    });
+  }catch(e){ console.warn('[iniciarViajeAsignado]', e); }
+}
+
+function eliminarViajeAsignado(ref){
+  try{
+    if(!confirm('¿Rechazar este viaje? El administrador podrá reasignarlo.')) return;
+    fetch('https://lavobcn-default-rtdb.europe-west1.firebasedatabase.app/despachos/'+ref+'.json', {
+      method:'PATCH', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({estado:'cancelado', motivoCancelacion:'Rechazado por el rider'})
+    }).then(function(){ abrirViajesAsignados(); });
+  }catch(e){ console.warn('[eliminarViajeAsignado]', e); }
+}
+
+// ── PEDIDOS LAVANDERÍA (Perfect Clean / Prim) — mismo estilo del despacho de cliente.html ──
+async function abrirPedidosLavRider(){
+  try{
+    document.getElementById('lavped-ov').style.display = 'flex';
+    document.getElementById('lavped-p1').style.display = 'block';
+    document.getElementById('lavped-p2').style.display = 'none';
+    var resumen = await contarPendientesPorLav();
+    var elPc = document.getElementById('lavped-stat-pc');
+    var elPrim = document.getElementById('lavped-stat-prim');
+    if(elPc) elPc.textContent = resumen.pc ? ('🟢 '+resumen.pc+' pendiente'+(resumen.pc!==1?'s':'')) : 'Sin pedidos pendientes';
+    if(elPrim) elPrim.textContent = resumen.prim ? ('🟢 '+resumen.prim+' pendiente'+(resumen.prim!==1?'s':'')) : 'Sin pedidos pendientes';
+  }catch(e){ console.warn('[abrirPedidosLavRider]', e); }
+}
+
+async function contarPendientesPorLav(){
+  var conteo = {pc:0, prim:0};
+  try{
+    var r1 = await fetch('https://lavobcn-default-rtdb.europe-west1.firebasedatabase.app/pedidos.json');
+    var d1 = await r1.json() || {};
+    Object.values(d1).forEach(function(p){
+      if(p && p.estado==='pendiente'){
+        if(p.local==='Perfect Clean') conteo.pc++;
+        if(p.local==='Tintorería Prim') conteo.prim++;
+      }
+    });
+    var r2 = await fetch('https://lavobcn-default-rtdb.europe-west1.firebasedatabase.app/despachos.json');
+    var d2 = await r2.json() || {};
+    Object.values(d2).forEach(function(d){
+      if(d && d.estado==='pendiente'){
+        if(d.lavanderia==='Perfect Clean') conteo.pc++;
+        if(d.lavanderia==='Tintorería Prim') conteo.prim++;
+      }
+    });
+  }catch(e){}
+  return conteo;
+}
+
+async function abrirListaLavRider(lavId){
+  try{
+    var nombreLav = lavId==='pc' ? 'Perfect Clean' : 'Tintorería Prim';
+    document.getElementById('lavped-title').textContent = '🧺 '+nombreLav;
+    document.getElementById('lavped-p1').style.display = 'none';
+    document.getElementById('lavped-p2').style.display = 'block';
+    var cont = document.getElementById('lavped-lista');
+    cont.innerHTML = '<div style="font-size:12px;color:#566173;text-align:center;padding:12px;">Cargando…</div>';
+
+    var items = [];
+    var r1 = await fetch('https://lavobcn-default-rtdb.europe-west1.firebasedatabase.app/pedidos.json');
+    var d1 = await r1.json() || {};
+    Object.entries(d1).forEach(function(e){
+      var p = e[1];
+      if(p && p.estado==='pendiente' && p.local===nombreLav){
+        items.push({tipo:'pedido', ref:p.ref||e[0], dest: p.cliente||p.dir||'Pedido', sub: p.dir||'', monto: p.total||''});
+      }
+    });
+    var r2 = await fetch('https://lavobcn-default-rtdb.europe-west1.firebasedatabase.app/despachos.json');
+    var d2 = await r2.json() || {};
+    Object.entries(d2).forEach(function(e){
+      var d = e[1];
+      if(d && d.estado==='pendiente' && d.lavanderia===nombreLav){
+        var primeraParada = (d.paradas && d.paradas[0]) || {};
+        items.push({tipo:'despacho', ref:d.ref||e[0], dest: (d.total_viajes||1)+' viaje'+((d.total_viajes||1)!==1?'s':''), sub: primeraParada.dest||'', monto: (d.coste_rider||0)+'€'});
+      }
+    });
+
+    if(!items.length){
+      cont.innerHTML = '<div style="font-size:12px;color:#566173;text-align:center;padding:20px 0;">📭 Sin pedidos pendientes en '+nombreLav+'.</div>';
+      return;
+    }
+
+    cont.innerHTML = items.map(function(it, i){
+      return '<div style="display:flex;align-items:center;gap:10px;background:#161b22;border:1px solid #232c39;border-radius:11px;padding:10px 13px;margin-bottom:8px;">'+
+        '<div style="width:22px;height:22px;border-radius:50%;background:#10b981;color:#04241a;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'+(i+1)+'</div>'+
+        '<div style="flex:1;">'+
+          '<div style="font-size:13px;font-weight:700;color:#e7edf3;">'+it.dest+'</div>'+
+          '<div style="font-size:11px;font-weight:700;color:#10b981;margin-top:2px;">'+(it.sub?('📍 '+it.sub+' · '):'')+it.monto+'</div>'+
+        '</div>'+
+        '<div onclick="cancelarPedidoLavRider(\''+it.tipo+'\',\''+it.ref+'\',\''+lavId+'\')" style="color:#566173;font-size:18px;cursor:pointer;padding:0 4px;">×</div>'+
+      '</div>';
+    }).join('');
+  }catch(e){ console.warn('[abrirListaLavRider]', e); }
+}
+
+function cancelarPedidoLavRider(tipo, ref, lavId){
+  if(!confirm('¿Cancelar este pedido?')) return;
+  try{
+    var tabla = tipo==='despacho' ? 'despachos' : 'pedidos';
+    var lavNm = lavId==='prim' ? 'Tintoreria Prim' : 'Perfect Clean';
+    var nombreRider = typeof nombre!=='undefined' ? nombre : 'rider';
+
+    // SDK primero — inmediato via WebSocket
+    try{
+      if(fbDBR){
+        fbDBR.ref(tabla+'/'+ref+'/estado').set('cancelado');
+        fbDBR.ref(tabla+'/'+ref+'/rider').set(nombreRider);
+        fbDBR.ref(tabla+'/'+ref+'/motivoCancelacion').set('Rechazado por el rider');
+      }
+    }catch(edb){}
+
+    // Fetch como respaldo
+    fetch('https://lavobcn-default-rtdb.europe-west1.firebasedatabase.app/'+tabla+'/'+ref+'.json', {
+      method:'PATCH', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({estado:'cancelado', rider:nombreRider, motivoCancelacion:'Rechazado por el rider'})
+    }).then(function(){
+      var msgCancelado = '❌ *PEDIDO CANCELADO / RECHAZADO*\n'+
+        '📋 Ref: '+ref+'\n'+
+        '🏪 Local: '+lavNm+'\n'+
+        '🛵 Rider: '+nombreRider+'\n'+
+        '⏰ '+new Date().toLocaleString('es-ES',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+'\n'+
+        'Requiere atención — asignar otro rider';
+      enviarWhatsAppAdmin(msgCancelado);
+      abrirListaLavRider(lavId);
+    });
+  }catch(e){ console.warn('[cancelarPedidoLavRider]', e); }
+}
+
+async function abrirHistorial(){
+  try{
+    document.getElementById('historial-ov').style.display = 'flex';
+    var cont = document.getElementById('lista-historial');
+    cont.innerHTML = '<div style="text-align:center;color:var(--sub);font-size:13px;padding:20px 0;">Cargando…</div>';
+
+    var r1 = await fetch('https://lavobcn-default-rtdb.europe-west1.firebasedatabase.app/pedidos.json?orderBy="riderKey"&equalTo="'+userKey+'"');
+    var data1 = await r1.json() || {};
+    var entregasPedidos = Object.values(data1).filter(function(p){ return p && p.estado==='entregado' && p.riderKey===userKey; })
+      .map(function(p){ return {
+        ref: p.ref, ts: p.tsCompletado||p.ts||Date.now(),
+        titulo: p.lav || p.dir || 'Pedido',
+        servicio: p.tipo === 'moto' ? 'Moto Taxi' : (p.tipo === 'mensajeria' ? 'Mensajería' : (p.tipo === 'amazon' ? 'Paquete Amazon' : 'Lavandería')),
+        costo: parseFloat(p.precio)||0, km: p.km||0, paradas: 1
+      }; });
+
+    // También los despachos (el pedido PRINCIPAL de lavandería) completados por este rider
+    var r2 = await fetch('https://lavobcn-default-rtdb.europe-west1.firebasedatabase.app/despachos.json?orderBy="riderKey"&equalTo="'+userKey+'"');
+    var data2 = await r2.json() || {};
+    var entregasDespachos = Object.values(data2).filter(function(d){ return d && d.estado==='entregado' && d.riderKey===userKey; })
+      .map(function(d){ return {
+        ref: d.ref, ts: d.tsCompletado||d.ts||Date.now(),
+        titulo: d.lavanderia || 'Lavandería',
+        servicio: 'Ruta de reparto', costo: parseFloat(d.coste_rider)||0, km: d.km||0,
+        paradas: d.total_viajes||1
+      }; });
+
+    var entregas = entregasPedidos.concat(entregasDespachos);
+    entregas.sort(function(a,b){ return b.ts - a.ts; });
+
+    if(!entregas.length){
+      cont.innerHTML = '<div style="text-align:center;color:var(--sub);font-size:13px;padding:30px 0;">📭 Todavía no tienes entregas completadas.</div>';
+      return;
+    }
+
+    // Resumen del total, arriba del todo
+    var totalGanado = entregas.reduce(function(s,e){ return s+e.costo; }, 0);
+    var totalKm = entregas.reduce(function(s,e){ return s+e.km; }, 0);
+    var resumen = '<div style="background:linear-gradient(135deg,#10b98122,#7c3aed22);border:1px solid #2d2150;border-radius:12px;padding:14px;margin-bottom:14px;display:flex;justify-content:space-around;text-align:center;">'+
+      '<div><div style="font-size:18px;font-weight:900;color:#10b981;">'+entregas.length+'</div><div style="font-size:10.5px;color:var(--sub);">entregas</div></div>'+
+      '<div><div style="font-size:18px;font-weight:900;color:#10b981;">'+totalGanado.toFixed(2)+'€</div><div style="font-size:10.5px;color:var(--sub);">ganado</div></div>'+
+      '<div><div style="font-size:18px;font-weight:900;color:#10b981;">'+totalKm.toFixed(1)+'</div><div style="font-size:10.5px;color:var(--sub);">km totales</div></div>'+
+    '</div>';
+
+    var DIAS = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+
+    cont.innerHTML = resumen + entregas.map(function(e){
+      var fd = new Date(e.ts);
+      var diaSemana = DIAS[fd.getDay()];
+      var fecha = fd.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'numeric'});
+      var hora = fd.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
+      return '<div style="background:var(--card);border:1px solid var(--bdr);border-radius:12px;padding:13px;margin-bottom:9px;">'+
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;">'+
+          '<div><div style="font-size:13px;font-weight:800;color:#fff;">'+e.titulo+'</div>'+
+          '<div style="font-size:11px;color:var(--sub);margin-top:2px;">'+diaSemana+' '+fecha+' · '+hora+'</div>'+
+          '<div style="font-size:11px;color:var(--dim);margin-top:3px;">'+e.servicio+(e.paradas>1?(' · '+e.paradas+' paradas'):'')+'</div></div>'+
+          '<div style="font-size:15px;font-weight:900;color:#10b981;white-space:nowrap;">+'+e.costo.toFixed(2)+'€</div>'+
+        '</div>'+
+        (e.km ? '<div style="font-size:11px;color:var(--dim);margin-top:6px;">🛵 '+e.km+' km recorridos</div>' : '')+
+        '<div style="font-size:10px;color:var(--bdr);margin-top:4px;">Ref: '+e.ref+'</div>'+
+      '</div>';
+    }).join('');
+  }catch(e){ console.warn('[abrirHistorial]', e); }
+}
+
+// ── SERVICE WORKER — registro explícito para push en iOS y Android ──
+if('serviceWorker' in navigator){
+  // Registrar el SW al cargar — necesario para push cuando pantalla apagada
+  navigator.serviceWorker.register('/firebase-messaging-sw.js').then(function(reg){
+    console.log('[SW] Registrado:', reg.scope);
+  }).catch(function(err){
+    console.warn('[SW] Error al registrar:', err);
+  });
+
+  // Escuchar mensajes del SW (cuando rider toca la notificación)
+  navigator.serviceWorker.addEventListener('message', function(event){
+    if(event.data && event.data.tipo === 'NUEVO_PEDIDO'){
+      if(stOn && !pedActivo) buscarPedidosPendientes();
+    }
+  });
+}
+
+// ── Al volver a la app (tras tocar una notificación, cambiar de pestaña, etc.) ──
+// revisa de inmediato si hay un pedido esperando — así suena aunque la app estuviera en segundo plano.
+document.addEventListener('visibilitychange', function(){
+  if(document.visibilityState === 'visible' && stOn && !pedActivo){
+    buscarPedidosPendientes();
+  }
+});
+window.addEventListener('focus', function(){
+  if(stOn && !pedActivo){ buscarPedidosPendientes(); }
+});
+
+async function toggleSt(){
+  if(stOn){
+    vib(120);
+    hablar('Desconectado.');
+    estadoUI(false);
+    showToast('⏸ Desconectado · no recibes pedidos');
+    detenerPollingPedidos();
+    detenerSeguimientoGPS();
+    guardarUltimaConexion('desconectado');
+  } else {
+    vib([90,60,90]);
+    hablar('Estás conectado. Buscando pedidos.');
+    // Intenta activar notificaciones automáticamente — si el usuario ya las concedió antes, funciona sin preguntar
+    // Si no las concedió, lo hace en segundo plano sin bloquear
+    try{
+      if(typeof LavoNotif!=='undefined'){
+        LavoNotif.activar('rider', userKey).catch(function(){});
+      }
+    }catch(e){}
+    if(!notificacionesListas()){
+      // Avisa suavemente pero NO bloquea — el rider puede trabajar igualmente
+      showToast('💡 Activa notificaciones en el menú para recibir pedidos en segundo plano');
+    }
+    verificarPermisoUbicacion();
+    desbloquearAudioReal();
+
+    // NOTIFICACIONES PUSH — activar al conectar para recibir pedidos con pantalla apagada
+    if(typeof LavoNotif !== 'undefined'){
+      LavoNotif.activar('rider', userKey).then(function(token){
+        if(token){
+          showToast('🔔 Avisos push activados — recibirás pedidos aunque cierres la app');
+        } else {
+          // Mostrar panel prominente para pedir permiso
+          mostrarPanelActivarAvisos();
+        }
+      }).catch(function(){ mostrarPanelActivarAvisos(); });
+    } else {
+      mostrarPanelActivarAvisos();
+    }
+
+    estadoUI(true);
+    showToast('✅ Conectado · buscando pedidos');
+    try{ initFirebaseRider(); setTimeout(escucharPedidos, 800); }catch(e){}
+    iniciarPollingPedidos();
+    iniciarSeguimientoGPS();
+    activarWakeLock();
+    _tsConectado = Date.now();
+    _tsUltimoPedido = Date.now();
+    guardarUltimaConexion('conectado');
+  }
+}
+
+function mostrarPanelActivarAvisos(){
+  try{
+    var viejo = document.getElementById('panel-avisos-rider');
+    if(viejo) viejo.remove();
+    var panel = document.createElement('div');
+    panel.id = 'panel-avisos-rider';
+    panel.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);'+
+      'width:calc(100% - 32px);max-width:400px;background:#1a1200;border:2px solid #f97316;'+
+      'border-radius:16px;padding:16px;z-index:800;box-shadow:0 8px 32px rgba(0,0,0,.6);';
+    panel.innerHTML =
+      '<div style="font-size:14px;font-weight:900;color:#f97316;margin-bottom:6px;">🔔 Activa los avisos push</div>'+
+      '<div style="font-size:12px;color:#94a3b8;margin-bottom:12px;">Sin ellos, <strong style="color:#fff;">el teléfono no suena</strong> cuando llegue un pedido si tienes la pantalla apagada o estás en otra app.</div>'+
+      '<button onclick="activarAvisosRider()" style="width:100%;padding:13px;border-radius:10px;background:#f97316;color:#fff;border:none;font-size:14px;font-weight:900;cursor:pointer;font-family:inherit;">Activar avisos ahora →</button>'+
+      '<button onclick="this.parentNode.remove()" style="width:100%;padding:10px;border-radius:10px;background:none;color:#475569;border:none;font-size:12px;cursor:pointer;font-family:inherit;margin-top:6px;">Ahora no (perderás pedidos)</button>';
+    document.body.appendChild(panel);
+    setTimeout(function(){ if(panel.parentNode) panel.remove(); }, 15000);
+  }catch(e){}
+}
+
+async function activarAvisosRider(){
+  try{
+    var panel = document.getElementById('panel-avisos-rider');
+    if(panel) panel.remove();
+    if(typeof LavoNotif !== 'undefined'){
+      var token = await LavoNotif.activar('rider', userKey);
+      if(token){
+        showToast('✅ Avisos activados — recibirás pedidos aunque cierres la app');
+      } else {
+        showToast('⚠️ Permite las notificaciones en Ajustes del teléfono');
+      }
+    }
+  }catch(e){ console.warn('[activarAvisosRider]', e); }
+}
+
+function verificarPermisoUbicacion(){
+  try{
+    if(navigator.permissions && navigator.permissions.query){
+      navigator.permissions.query({name:'geolocation'}).then(function(estado){
+        if(estado.state === 'denied'){
+          showToast('⚠️ Bloqueaste el permiso de ubicación — los avisos de ubicación no van a funcionar. Actívalo en Ajustes del teléfono.');
+          vib([100,60,100]);
+        }
+      }).catch(function(){});
+    }
+  }catch(e){}
+}
+
+function guardarUltimaConexion(estado){
+  try{
+    fetch('https://lavobcn-default-rtdb.europe-west1.firebasedatabase.app/riders_estado/'+userKey+'.json', {
+      method:'PUT', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({estado:estado, ts:Date.now(), rider:nombre})
+    }).catch(function(){});
+  }catch(e){}
+}
+
+function notificacionesListas(){
+  try{ return ('Notification' in window) && Notification.permission === 'granted'; }
+  catch(e){ return false; }
+}
+
+function avisarFaltanNotificaciones(){
+  try{
+    vib([100,60,100,60,100]);
+    sonidoBannerGPS();
+    showToast('🔔 Te falta activar las notificaciones para poder conectarte');
+    if('Notification' in window && Notification.permission === 'default'){
+      Notification.requestPermission().then(function(permiso){
+        if(permiso === 'granted'){ showToast('✅ Listo, ya puedes tocar Conectar'); }
+      });
+    } else if('Notification' in window && Notification.permission === 'denied'){
+      showToast('⚠️ Las notificaciones están bloqueadas — actívalas en Ajustes del teléfono');
+    }
+  }catch(e){ console.warn('[avisarFaltanNotificaciones]', e); }
+}
+// 🚗 Viaje aceptado — confiado, energético, distinto al de conectar
+function sonidoViajeAceptado(){
+  try{
+    var ctx = obtenerAudioCtx(); if(!ctx) return;
+    [523, 784].forEach(function(f,i){
+      var o = ctx.createOscillator(), g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.type = 'triangle'; o.frequency.value = f;
+      var t = ctx.currentTime + i*0.11;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.55, t+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t+0.28);
+      o.start(t); o.stop(t+0.3);
+    });
+  }catch(e){}
+}
+
+// 📍 Llegada al punto — campanita única, suave y clara
+function sonidoLlegada(){
+  try{
+    var ctx = obtenerAudioCtx(); if(!ctx) return;
+    var o = ctx.createOscillator(), g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.type = 'sine'; o.frequency.value = 1318; // E6, campanita clara
+    g.gain.setValueAtTime(0.0001, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.45, ctx.currentTime+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime+0.5);
+    o.start(ctx.currentTime); o.stop(ctx.currentTime+0.5);
+  }catch(e){}
+}
+
+// 💬 Mensaje del pasajero/admin — sutil, doble toque rápido
+function sonidoMensaje(){
+  try{
+    var ctx = obtenerAudioCtx(); if(!ctx) return;
+    [700, 900].forEach(function(f,i){
+      var o = ctx.createOscillator(), g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.type = 'sine'; o.frequency.value = f;
+      var t = ctx.currentTime + i*0.08;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.25, t+0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, t+0.1);
+      o.start(t); o.stop(t+0.12);
+    });
+  }catch(e){}
+}
+
+// 🎉 Fin del viaje — alegre, 3 notas subiendo, celebratorio
+function sonidoFinViaje(){
+  try{
+    var ctx = obtenerAudioCtx(); if(!ctx) return;
+    [523, 659, 880].forEach(function(f,i){
+      var o = ctx.createOscillator(), g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.type = 'triangle'; o.frequency.value = f;
+      var t = ctx.currentTime + i*0.1;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.5, t+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t+0.25);
+      o.start(t); o.stop(t+0.27);
+    });
+  }catch(e){}
+}
+
+// ❌ Cancellation Tone — informa que el viaje terminó antes de empezar, tono descendente
+function sonidoCancelacion(){
+  try{
+    var ctx = obtenerAudioCtx(); if(!ctx) return;
+    [440, 330, 220].forEach(function(f,i){
+      var o = ctx.createOscillator(), g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.type = 'triangle'; o.frequency.value = f;
+      var t = ctx.currentTime + i*0.14;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.5, t+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t+0.3);
+      o.start(t); o.stop(t+0.32);
+    });
+  }catch(e){}
+}
+
+// 📡 Trip Radar Ping — indica que hay viajes disponibles compitiendo, tono breve y curioso
+function sonidoTripRadar(){
+  try{
+    var ctx = obtenerAudioCtx(); if(!ctx) return;
+    var o = ctx.createOscillator(), g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.type = 'sine'; o.frequency.setValueAtTime(600, ctx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(900, ctx.currentTime+0.12);
+    g.gain.setValueAtTime(0.0001, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.35, ctx.currentTime+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime+0.25);
+    o.start(ctx.currentTime); o.stop(ctx.currentTime+0.27);
+  }catch(e){}
+}
+
+function sonidoClic(){
+  try{
+    var ctx = obtenerAudioCtx(); if(!ctx) return;
+    var o = ctx.createOscillator(), g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.type = 'sine'; o.frequency.value = 1000;
+    g.gain.setValueAtTime(0.18, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime+0.05);
+    o.start(ctx.currentTime); o.stop(ctx.currentTime+0.05);
+  }catch(e){}
+}
+
+// ── AUDIO COMPARTIDO: un solo contexto reusado, para que los sonidos disparados
+// por temporizadores/GPS (no por un toque directo) no queden bloqueados por el navegador ──
+var _audioCtx = null;
+var _audioDesbloqueado = false;
+// ── VOZ: todas las notificaciones importantes se anuncian habladas ──
+var _vozEsCache = null;
+var _idiomaVoz = 'es-ES'; // cambia con el idioma de la app
+var _vozCache = null;
+
+function hablar(texto){
+  try{
+    if(!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance(texto);
+    u.lang = _idiomaVoz;
+    u.rate = 1; u.pitch = 1; u.volume = 1;
+    _vozCache = window.speechSynthesis.getVoices().filter(function(v){ return v.lang.indexOf(_idiomaVoz.slice(0,2))===0; });
+    if(_vozCache.length) u.voice = _vozCache[0];
+    window.speechSynthesis.speak(u);
+  }catch(e){ console.warn('[hablar]', e); }
+}
+
+var IDIOMA_VOZ_MAP = {es:'es-ES', ca:'ca-ES', fr:'fr-FR', en:'en-GB', ru:'ru-RU'};
+
+function cambiarIdiomaRider(lang){
+  try{
+    _idiomaVoz = IDIOMA_VOZ_MAP[lang] || 'es-ES';
+    _vozCache = null; // fuerza actualizar la voz
+    try{ localStorage.setItem('lavobcn_rider_idioma', lang); }catch(e){}
+  }catch(e){ console.warn('[cambiarIdiomaRider]', e); }
+}
+
+if('speechSynthesis' in window){
+  window.speechSynthesis.onvoiceschanged = function(){ _vozCache = null; };
+}
+
+function obtenerAudioCtx(){
+  try{
+    if(!_audioCtx){
+      _audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    }
+    if(_audioCtx.state === 'suspended'){ _audioCtx.resume(); }
+    return _audioCtx;
+  }catch(e){ return null; }
+}
+// Desbloquea el audio de verdad: crea el contexto Y reproduce algo real (casi silencioso)
+// dentro del toque — solo "resume()" no es suficiente en iOS para desbloquear sonidos futuros.
+function desbloquearAudioReal(){
+  if(_audioDesbloqueado) return;
+  try{
+    var ctx = obtenerAudioCtx();
+    if(!ctx) return;
+    var o = ctx.createOscillator(), g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.frequency.value = 440;
+    g.gain.setValueAtTime(0.001, ctx.currentTime); // casi inaudible, solo para desbloquear
+    o.start(); o.stop(ctx.currentTime + 0.05);
+    _audioDesbloqueado = true;
+  }catch(e){ console.warn('[desbloquearAudioReal]', e); }
+}
+document.addEventListener('touchstart', desbloquearAudioReal, {passive:true});
+document.addEventListener('click', desbloquearAudioReal);
+document.addEventListener('touchend', desbloquearAudioReal, {passive:true});
+
+function probarSonidoDiagnostico(){
+  try{
+    if(!(window.AudioContext||window.webkitAudioContext)){
+      alert('❌ Este navegador no soporta Web Audio en absoluto. Prueba con Chrome o Safari actualizado.');
+      return;
+    }
+    var ctx = obtenerAudioCtx();
+    if(!ctx){ alert('❌ No se pudo crear el contexto de audio.'); return; }
+    var estadoAntes = ctx.state;
+    var o = ctx.createOscillator(), g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.type = 'sine'; o.frequency.value = 880;
+    g.gain.setValueAtTime(0.001, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.6, ctx.currentTime+0.05);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+1.2);
+    o.start(); o.stop(ctx.currentTime+1.2);
+    setTimeout(function(){
+      alert('🔎 Diagnóstico:\nEstado del audio: '+estadoAntes+' → '+ctx.state+'\nSi NO escuchaste nada, revisa: ¿tu teléfono está en silencio/vibración? ¿el volumen de MEDIOS (no el del timbre) está subido?');
+    }, 100);
+  }catch(e){ alert('❌ Error real: '+e.message); }
+}
+
+function vib(ms){ try{ if(navigator.vibrate) navigator.vibrate(ms||15); }catch(e){} }
+
+// ── BANDEJA DE MENSAJES (rider) ──
+function abrirMensajesRider(){
+  try{
+    var mensajes = (typeof LavoNotif!=='undefined') ? LavoNotif.obtenerMensajes() : [];
+    var lista = document.getElementById('lista-mensajes-rider');
+    if(!mensajes.length){
+      lista.innerHTML = '<div style="text-align:center;color:var(--sub);font-size:13px;padding:30px 0;">📭 Todavía no te ha llegado ningún mensaje.</div>';
+    } else {
+      lista.innerHTML = mensajes.map(function(m){
+        var hora = new Date(m.ts).toLocaleString('es-ES',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+        return '<div style="background:var(--card);border:1px solid var(--bdr);border-radius:12px;padding:13px;margin-bottom:9px;">'+
+          '<div style="font-size:13px;font-weight:800;color:#fff;">'+(m.titulo||'LavoBCN')+'</div>'+
+          '<div style="font-size:12.5px;color:var(--dim);margin-top:3px;">'+(m.cuerpo||'')+'</div>'+
+          '<div style="font-size:10px;color:var(--sub);margin-top:6px;">'+hora+'</div></div>';
+      }).join('');
+    }
+    document.getElementById('mensajes-ov').style.display = 'flex';
+    if(typeof LavoNotif!=='undefined'){ LavoNotif.marcarTodoLeido(); }
+    actualizarBadgeMensajesRider();
+  }catch(e){ console.warn('[abrirMensajesRider]', e); }
+}
+
+function actualizarBadgeMensajesRider(){
+  try{
+    var n = (typeof LavoNotif!=='undefined') ? LavoNotif.contarNoLeidos() : 0;
+    var b = document.getElementById('msg-badge-rider');
+    if(b){ b.textContent = n>0 ? n : ''; b.style.display = n>0 ? 'flex' : 'none'; }
+  }catch(e){}
+}
+
+// ── MOTOR DE SEÑALES DEL RIDER (10 tipos de aviso, corre todo el tiempo conectado) ──
+var _gpsWatchId = null;
+
+// ── ACELERÓMETRO — detecta si el rider está quieto, caminando o en moto ──
+var _accel = { x:0, y:0, z:0 };
+var _accelUltima = { x:0, y:0, z:0 };
+var _accelMovTotal = 0;
+var _accelMuestras = 0;
+var _accelEstado = 'desconocido'; // 'quieto' | 'caminando' | 'moto' | 'desconocido'
+var _accelUltimaEvalTs = 0;
+
+function iniciarAcelerometro(){
+  try{
+    if(!window.DeviceMotionEvent) return;
+    // iOS 13+ requiere permiso explícito
+    if(typeof DeviceMotionEvent.requestPermission === 'function'){
+      DeviceMotionEvent.requestPermission().then(function(r){
+        if(r==='granted') window.addEventListener('devicemotion', _onDeviceMotion);
+      }).catch(function(){});
+    } else {
+      window.addEventListener('devicemotion', _onDeviceMotion);
+    }
+  }catch(e){}
+}
+
+function _onDeviceMotion(e){
+  try{
+    var a = e.accelerationIncludingGravity || e.acceleration;
+    if(!a) return;
+    var dx = Math.abs((a.x||0) - _accelUltima.x);
+    var dy = Math.abs((a.y||0) - _accelUltima.y);
+    var dz = Math.abs((a.z||0) - _accelUltima.z);
+    var mag = dx + dy + dz;
+    _accelMovTotal += mag;
+    _accelMuestras++;
+    _accelUltima = {x:a.x||0, y:a.y||0, z:a.z||0};
+
+    // Evalúa el estado cada 3 segundos
+    var ahora = Date.now();
+    if(ahora - _accelUltimaEvalTs > 3000 && _accelMuestras > 0){
+      var promedio = _accelMovTotal / _accelMuestras;
+      var estadoAnterior = _accelEstado;
+      if(promedio < 0.4)       _accelEstado = 'quieto';
+      else if(promedio < 3.5)  _accelEstado = 'caminando';
+      else                     _accelEstado = 'moto';
+      _accelMovTotal = 0; _accelMuestras = 0; _accelUltimaEvalTs = ahora;
+
+      // Si pasó de moverse a quieto mientras tiene un pedido activo → puede ser señal de llegada
+      if(estadoAnterior !== 'quieto' && _accelEstado === 'quieto' && pedActivo){
+        _gpsUltimoMovimientoTs = ahora - UMBRAL_TIEMPO_QUIETO_MS - 100; // activa la señal de detenido
+      }
+    }
+  }catch(e){}
+}
+var _gpsHistorial = [];        // últimas posiciones con rumbo: {lat,lng,ts,bearing}
+var _gpsUltimaPos = null;
+var _gpsUltimaPrecision = null;
+var _gpsUltimoMovimientoTs = null;
+var _gpsPromptMostrado = false;
+var _tipoAvisoActivo = null;
+var _ultimaVezAvisoTipo = {};
+var _etapaPorTipo = {}; // cuántas veces seguidas ha salido el mismo tipo sin resolverse
+var _tsConectado = null;
+var _tsUltimoPedido = null;
+var _intervaloSenales = null;
+var _bateriaNivelActual = null;
+var _tsAvisoMostradoSinResponder = null;
+
+var UMBRAL_QUIETO_M = 25;
+var UMBRAL_TIEMPO_QUIETO_MS = 3000;       // quieto antes de evaluar llegada/tráfico (modo prueba)
+var UMBRAL_LEJOS_DESTINO_M = 150;
+var UMBRAL_CERCA_DESTINO_M = 100;
+var COOLDOWN_MISMO_TIPO_MS = 5*60*1000;    // 5 min entre el mismo tipo de aviso
+var UMBRAL_SIN_RESPUESTA_MS = 10*60*1000;  // 10 min sin respuesta antes de escalar
+var UMBRAL_SIN_PEDIDOS_MS = 15*60*1000;    // 15 min sin pedidos antes de avisar
+
+function distanciaMetros(lat1,lng1,lat2,lng2){
+  var R = 6371000;
+  var dLat = (lat2-lat1)*Math.PI/180, dLng = (lng2-lng1)*Math.PI/180;
+  var a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)*Math.sin(dLng/2);
+  return R*2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function calcularBearing(lat1,lng1,lat2,lng2){
+  var y = Math.sin((lng2-lng1)*Math.PI/180) * Math.cos(lat2*Math.PI/180);
+  var x = Math.cos(lat1*Math.PI/180)*Math.sin(lat2*Math.PI/180) - Math.sin(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.cos((lng2-lng1)*Math.PI/180);
+  return (Math.atan2(y,x)*180/Math.PI + 360) % 360;
+}
+
+function diferenciaAngular(a,b){
+  var d = Math.abs(a-b) % 360;
+  return d > 180 ? 360-d : d;
+}
+
+// #3 — Zigzag: el rumbo cambia de dirección varias veces en poco tiempo
+function detectarZigzag(){
+  if(_gpsHistorial.length < 4) return false;
+  var ultimos = _gpsHistorial.slice(-4);
+  var giros = 0;
+  for(var i=1;i<ultimos.length;i++){
+    if(diferenciaAngular(ultimos[i].bearing, ultimos[i-1].bearing) > 90) giros++;
+  }
+  return giros >= 2;
+}
+
+// #4 — Va en dirección contraria al destino
+function vaEnDireccionContraria(destino){
+  if(_gpsHistorial.length < 1 || !_gpsUltimaPos) return false;
+  var ultimoRumbo = _gpsHistorial[_gpsHistorial.length-1].bearing;
+  var rumboAlDestino = calcularBearing(_gpsUltimaPos.lat, _gpsUltimaPos.lng, destino.lat, destino.lng);
+  return diferenciaAngular(ultimoRumbo, rumboAlDestino) > 120;
+}
+
+function iniciarMonitorBateria(){
+  try{
+    if(!navigator.getBattery) return;
+    navigator.getBattery().then(function(bat){
+      _bateriaNivelActual = bat.level;
+      bat.addEventListener('levelchange', function(){ _bateriaNivelActual = bat.level; });
+    });
+  }catch(e){}
+}
+
+function puedeAvisar(tipo){
+  var ultima = _ultimaVezAvisoTipo[tipo] || 0;
+  return (Date.now() - ultima) > COOLDOWN_MISMO_TIPO_MS;
+}
+
+function dispararAviso(tipo, mensajes){
+  if(_gpsPromptMostrado) return; // ya hay uno mostrado, no se encima otro
+  if(!puedeAvisar(tipo)) return;
+  _ultimaVezAvisoTipo[tipo] = Date.now();
+  _tipoAvisoActivo = tipo;
+  var etapa = _etapaPorTipo[tipo] || 0;
+  var lista = Array.isArray(mensajes) ? mensajes : [mensajes];
+  var texto = lista[Math.min(etapa, lista.length-1)];
+  _etapaPorTipo[tipo] = etapa + 1;
+  mostrarBannerConTexto(texto, tipo);
+}
+
+function resetearEtapa(tipo){
+  delete _etapaPorTipo[tipo];
+}
+
+// Conteo simple de pedidos pendientes en el sistema (#7) — sin coordenadas todavía, así que es un conteo general, no por cercanía real
+async function contarPedidosPendientesCerca(){
+  try{
+    var r = await fetch('https://lavobcn-default-rtdb.europe-west1.firebasedatabase.app/pedidos.json');
+    var data = await r.json() || {};
+    return Object.values(data).filter(function(p){ return p && p.estado==='pendiente'; }).length;
+  }catch(e){ return 0; }
+}
+
+async function evaluarSenales(){
+  try{
+    if(!gpsNotifActivado()) return;
+    if(_gpsPromptMostrado){
+      // #5 — si lleva mucho tiempo sin responder al aviso activo, escalar a soporte
+      if(_tsAvisoMostradoSinResponder && (Date.now()-_tsAvisoMostradoSinResponder) > UMBRAL_SIN_RESPUESTA_MS){
+        escalarAvisoSinRespuesta();
+      }
+      return; // ya hay uno mostrado, esperar
+    }
+    var ahora = Date.now();
+
+    // #8 — batería baja durante entrega activa (máxima prioridad)
+    if(pedActivo && _bateriaNivelActual!==null && _bateriaNivelActual<0.2){
+      dispararAviso('bateria', '🔋 Batería al '+Math.round(_bateriaNivelActual*100)+'% y tienes una entrega activa. Busca dónde cargar pronto.');
+      return;
+    }
+
+    // #9 — GPS impreciso
+    if(_gpsUltimaPrecision && _gpsUltimaPrecision > 100){
+      dispararAviso('gps_impreciso', '📡 La señal del GPS está débil ahora mismo. Confirma tu ubicación a mano si puedes.');
+      return;
+    }
+
+    if(pedActivo){
+      var destino = LAVS.find(function(l){return l.n===pedActivo.lav;});
+      var distDestino = (destino && _gpsUltimaPos) ? distanciaMetros(_gpsUltimaPos.lat,_gpsUltimaPos.lng,destino.lat,destino.lng) : null;
+      var quieto = _gpsUltimoMovimientoTs && (ahora - _gpsUltimoMovimientoTs) > UMBRAL_TIEMPO_QUIETO_MS;
+
+      // #3 — zigzag
+      if(detectarZigzag()){
+        dispararAviso('zigzag', '🔄 Pareces estar dando vueltas. ¿Te ayudamos a encontrar la dirección?');
+        return;
+      }
+      // #4 — dirección contraria
+      if(destino && vaEnDireccionContraria(destino)){
+        dispararAviso('direccion_contraria', '↩️ Pareces ir en otra dirección. ¿Vas hacia '+pedActivo.lav+'?');
+        return;
+      }
+      // #10 — acelerómetro dice "caminando" pero está lejos del destino con un pedido activo (dejó la moto)
+      if(_accelEstado==='caminando' && distDestino!==null && distDestino > UMBRAL_LEJOS_DESTINO_M){
+        dispararAviso('caminando_lejos', '🚶 Parece que vas a pie. ¿Dejaste la moto cerca?');
+        return;
+      }
+      if(quieto && distDestino!==null){
+        // #2 — cerca del destino, detenido → ¿llegaste?
+        if(distDestino < UMBRAL_CERCA_DESTINO_M){
+          mostrarBannerGPS();
+          return;
+        }
+        // #1 — lejos del destino, detenido → tráfico
+        if(distDestino > UMBRAL_LEJOS_DESTINO_M){
+          if(!_gpsPromptMostrado && puedeAvisar('lejos_detenido')){
+            var lugarCerca = await nombreDelLugarActual();
+            var pista = lugarCerca ? (' Veo que estás cerca de '+lugarCerca+'.') : '';
+            dispararAviso('lejos_detenido', [
+              (pista ? pista+' ' : '')+'¿Qué pasó?',
+              '¿Todo bien'+(lugarCerca?(' en '+lugarCerca):'')+' ?',
+              '¿Necesitas ayuda?'
+            ]);
+          }
+          return;
+        }
+      }
+    } else if(stOn){
+      // #11 — acelerómetro detecta "quieto" total (posible teléfono guardado) llevando rato conectado
+      if(_accelEstado==='quieto' && (ahora - (_tsConectado||ahora)) > UMBRAL_SIN_PEDIDOS_MS){
+        dispararAviso('telefono_quieto', '📱 No detecto movimiento del teléfono. ¿Sigues conectado?');
+        return;
+      }
+      // #6 + #7 unidas — una sola conversación mientras está conectado sin pedido
+      var sinPedidoMs = ahora - (_tsUltimoPedido || _tsConectado || ahora);
+      if(sinPedidoMs > UMBRAL_SIN_PEDIDOS_MS){
+        if(!_gpsPromptMostrado && puedeAvisar('sin_pedidos')){
+          var pendientes = await contarPedidosPendientesCerca();
+          var lugarActual = await nombreDelLugarActual();
+          if(pendientes>0) sonidoTripRadar();
+          dispararAviso('sin_pedidos', [
+            lugarActual ? ('¿Sigues en '+lugarActual+'?') : '¿Sigues ahí?',
+            pendientes>0 ? ('Hay '+pendientes+' pedido'+(pendientes!==1?'s':'')+' esperando. ¿Los ves?') : '¿Te mueves a otra zona?',
+            'Acércate a Sant Martí. Más pedidos ahí.'
+          ]);
+        }
+        return;
+      }
+    }
+  }catch(e){ console.warn('[evaluarSenales]', e); }
+}
+
+function escalarAvisoSinRespuesta(){
+  try{
+    _tsAvisoMostradoSinResponder = null; // evita repetir la escalada
+    var texto = document.getElementById('banner-gps-texto');
+    if(texto) texto.textContent = '🆘 No hemos sabido de ti en un rato. ¿Necesitas ayuda de verdad?';
+    var btnSi = document.querySelector('#banner-gps button[onclick="responderBannerGPS(true)"]');
+    if(btnSi) btnSi.textContent = 'Sí, llegué';
+    vib([120,80,120,80,120]);
+  }catch(e){}
+}
+
+var _tipoAvisoMostrandoseAhora = null;
+var _autoCierreTimer = null;
+
+// Geocodificación inversa gratuita (OpenStreetMap) — convierte lat/lng en un nombre de calle/zona real
+var _ultimoLugarConocido = null;
+var _ultimaBusquedaLugarTs = 0;
+async function nombreDelLugarActual(){
+  try{
+    if(!_gpsUltimaPos) return null;
+    // Caché corto — el lugar debe reflejar dónde está AHORA, no hace 20 segundos
+    if(Date.now() - _ultimaBusquedaLugarTs < 12000) return _ultimoLugarConocido;
+    _ultimaBusquedaLugarTs = Date.now();
+    var url = 'https://nominatim.openstreetmap.org/reverse?format=json&lat='+_gpsUltimaPos.lat+'&lon='+_gpsUltimaPos.lng+'&zoom=18&addressdetails=1';
+    var controlador = new AbortController();
+    var timeoutId = setTimeout(function(){ controlador.abort(); }, 4000); // no bloquear más de 4s
+    var r = await fetch(url, {headers:{'Accept-Language':'es'}, signal: controlador.signal});
+    clearTimeout(timeoutId);
+    var data = await r.json();
+    var a = data.address || {};
+    var lugar = a.amenity || a.shop || a.tourism || a.building || a.road || a.neighbourhood || a.suburb || null;
+    _ultimoLugarConocido = lugar;
+    return lugar;
+  }catch(e){ console.warn('[nombreDelLugarActual]', e); return _ultimoLugarConocido; }
+}
+
+function mostrarBannerConTexto(texto, tipo){
+  try{
+    _gpsPromptMostrado = true;
+    _tsAvisoMostradoSinResponder = Date.now();
+    _tipoAvisoMostrandoseAhora = tipo || _tipoAvisoActivo;
+    var t = document.getElementById('banner-gps-texto');
+    if(t) t.textContent = texto;
+    var b = document.getElementById('banner-gps');
+    var barra = document.getElementById('banner-gps-barra');
+    if(b){
+      b.style.display = 'block';
+      requestAnimationFrame(function(){
+        b.style.transform = 'translateY(0)';
+        // Iniciar la cuenta regresiva de la barra
+        if(barra){
+          barra.style.transition = 'none';
+          barra.style.width = '100%';
+          requestAnimationFrame(function(){
+            barra.style.transition = 'width 20s linear';
+            barra.style.width = '0%';
+          });
+        }
+      });
+    }
+    hablar(texto);
+    vib([60,40,60]);
+    registrarEventoRider(_tipoAvisoMostrandoseAhora, texto, null);
+
+    if(_autoCierreTimer) clearTimeout(_autoCierreTimer);
+    _autoCierreTimer = setTimeout(function(){
+      if(_gpsPromptMostrado){ cerrarBannerGPS(); }
+    }, 20000);
+  }catch(e){ console.warn('[mostrarBannerConTexto]', e); }
+}
+
+// Manda cada evento (mostrado o respondido) a Firebase, para que Admin lo vea en vivo
+function registrarEventoRider(tipo, mensaje, respuesta){
+  try{
+    var ts = Date.now();
+    fetch('https://lavobcn-default-rtdb.europe-west1.firebasedatabase.app/rider_eventos/'+userKey+'/'+ts+'.json', {
+      method:'PUT', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({tipo:tipo, mensaje:mensaje, respuesta:respuesta, ts:ts, rider:nombre})
+    }).catch(function(){});
+  }catch(e){}
+}
+
+function iniciarSeguimientoGPS(){
+  try{
+    if(_gpsWatchId !== null) return; // ya estaba corriendo
+    if(!navigator.geolocation) return;
+    _gpsUltimaPos = null;
+    _gpsHistorial = [];
+    _gpsUltimoMovimientoTs = Date.now();
+    _gpsPromptMostrado = false;
+    _gpsWatchId = navigator.geolocation.watchPosition(function(pos){
+      try{
+        var ahora = Date.now();
+        var lat = pos.coords.latitude, lng = pos.coords.longitude;
+        _gpsUltimaPrecision = pos.coords.accuracy;
+        if(_gpsUltimaPos){
+          var dist = distanciaMetros(_gpsUltimaPos.lat, _gpsUltimaPos.lng, lat, lng);
+          if(dist > UMBRAL_QUIETO_M){
+            var bearing = calcularBearing(_gpsUltimaPos.lat, _gpsUltimaPos.lng, lat, lng);
+            _gpsHistorial.push({lat:lat, lng:lng, ts:ahora, bearing:bearing});
+            if(_gpsHistorial.length > 8) _gpsHistorial.shift();
+            _gpsUltimoMovimientoTs = ahora;
+            if(_gpsPromptMostrado){ cerrarBannerGPS(); }
+            resetearEtapa('lejos_detenido');
+            resetearEtapa('zigzag');
+            resetearEtapa('direccion_contraria');
+          }
+        }
+        _gpsUltimaPos = {lat:lat, lng:lng};
+        evaluarSenales();
+      }catch(e){ console.warn('[gps watch]', e); }
+    }, function(err){
+      console.warn('[gps error]', err);
+      var msj = '⚠️ No pudimos acceder a tu ubicación.';
+      if(err.code === 1) msj = '⚠️ Bloqueaste el permiso de ubicación. Sin esto, los avisos de ubicación no pueden funcionar — actívalo en Ajustes del teléfono.';
+      else if(err.code === 2) msj = '⚠️ No se pudo determinar tu ubicación ahora mismo (sin señal GPS).';
+      else if(err.code === 3) msj = '⚠️ La ubicación está tardando demasiado en responder. Reintentando…';
+      showToast(msj);
+      vib([100,60,100]);
+    }, {enableHighAccuracy:true, maximumAge:8000, timeout:15000});
+    iniciarMonitorBateria();
+    iniciarAcelerometro();
+    activarWakeLock(); // mantiene la pantalla encendida mientras el rider está activo
+    if(_intervaloSenales) clearInterval(_intervaloSenales);
+    _intervaloSenales = setInterval(evaluarSenales, 15000); // revisa también por tiempo, no solo por movimiento
+  }catch(e){ console.warn('[iniciarSeguimientoGPS]', e); }
+}
+
+// ❌ VIGILANTE DE CANCELACIÓN — revisa el pedido activo cada 5s; si el cliente o admin lo cancela, avisa de inmediato
+var _vigilanteCancelIv = null;
+function iniciarVigilanteCancelacion(ref){
+  detenerVigilanteCancelacion();
+  _vigilanteCancelIv = setInterval(async function(){
+    try{
+      if(!pedActivo || pedActivo.ref !== ref){ detenerVigilanteCancelacion(); return; }
+      var tablaVigilada = pedActivo.esDespacho ? 'despachos' : 'pedidos';
+      var r = await fetch('https://lavobcn-default-rtdb.europe-west1.firebasedatabase.app/'+tablaVigilada+'/'+ref+'.json');
+      var data = await r.json();
+      if(data && data.estado === 'cancelado'){
+        manejarPedidoCancelado();
+      }
+    }catch(e){ console.warn('[vigilanteCancelacion]', e); }
+  }, 5000);
+}
+function detenerVigilanteCancelacion(){
+  if(_vigilanteCancelIv){ clearInterval(_vigilanteCancelIv); _vigilanteCancelIv = null; }
+}
+function manejarPedidoCancelado(){
+  try{
+    detenerVigilanteCancelacion();
+    detenerSeguimientoGPS();
+    hablar('El pedido fue cancelado.');
+    vib([150,80,150,80,150]);
+    showToast('❌ El pedido fue cancelado. El viaje terminó antes de empezar.');
+    document.getElementById('bs-ped').style.display='none';
+    document.getElementById('bs-search').style.display='block';
+    var bc=document.getElementById('btn-conectar'); if(bc) bc.style.display='';
+    document.getElementById('fab-nav').classList.remove('show');
+    pedActivo=null;
+  }catch(e){ console.warn('[manejarPedidoCancelado]', e); }
+}
+
+function detenerSeguimientoGPS(){
+  try{
+    if(_gpsWatchId !== null){ navigator.geolocation.clearWatch(_gpsWatchId); _gpsWatchId = null; }
+    if(_intervaloSenales){ clearInterval(_intervaloSenales); _intervaloSenales = null; }
+    cerrarBannerGPS();
+    liberarWakeLock(); // permite que la pantalla se apague normalmente al desconectarse
+  }catch(e){}
+}
+
+function sonidoBannerGPS(){
+  try{
+    var ctx = obtenerAudioCtx(); if(!ctx) return;
+    var notas = [660, 880]; // dos notas suaves, ascendentes — tono amigable, no alarmante
+    notas.forEach(function(freq, i){
+      var o = ctx.createOscillator(), g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.type = 'sine'; o.frequency.value = freq;
+      var inicio = ctx.currentTime + i*0.13;
+      g.gain.setValueAtTime(0.0001, inicio);
+      g.gain.linearRampToValueAtTime(0.12, inicio+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, inicio+0.22);
+      o.start(inicio); o.stop(inicio+0.22);
+    });
+  }catch(e){}
+}
+
+function gpsNotifActivado(){
+  try{ return localStorage.getItem('lavobcn_gps_notif_activo') !== '0'; }catch(e){ return true; } // activado por defecto
+}
+function toggleGpsNotif(){
+  try{
+    var actual = gpsNotifActivado();
+    localStorage.setItem('lavobcn_gps_notif_activo', actual ? '0' : '1');
+    pintarToggleGpsNotif();
+    vib();
+  }catch(e){}
+}
+function pintarToggleGpsNotif(){
+  try{
+    var sw = document.getElementById('switch-gps-notif');
+    if(!sw) return;
+    var on = gpsNotifActivado();
+    sw.style.background = on ? '#10b981' : 'var(--bdr)';
+    sw.querySelector('.bola').style.transform = on ? 'translateX(16px)' : 'translateX(0)';
+  }catch(e){}
+}
+
+function mostrarBannerGPS(){
+  try{
+    if(!gpsNotifActivado()) return; // el rider lo desactivó en Ajustes
+    hablar('Has llegado a tu destino.');
+    var destino = (pedActivo && (pedActivo.lav || pedActivo.dir)) || 'tu destino';
+    mostrarBannerConTexto('👋 Oye, hace un rato que no te veo moverte. ¿Ya llegaste a '+destino+'?');
+  }catch(e){ console.warn('[mostrarBannerGPS]', e); }
+}
+
+function cerrarBannerGPS(motivoSilencioso){
+  try{
+    // Si se cierra sin que el rider haya tocado "Sí" (auto-cierre, ✕, o se movió), se asume "No" — sin hacer nada más, solo se registra
+    if(_gpsPromptMostrado && motivoSilencioso !== false){
+      var t = document.getElementById('banner-gps-texto');
+      var texto = t ? t.textContent : '';
+      registrarEventoRider(_tipoAvisoMostrandoseAhora, texto, 'no');
+    }
+    var b = document.getElementById('banner-gps');
+    if(b){
+      b.style.transform = 'translateY(-100%)';
+      setTimeout(function(){ b.style.display = 'none'; }, 350);
+    }
+    if(_autoCierreTimer){ clearTimeout(_autoCierreTimer); _autoCierreTimer = null; }
+    _gpsPromptMostrado = false;
+    _tsAvisoMostradoSinResponder = null;
+    _tipoAvisoActivo = null;
+  }catch(e){}
+}
+
+function responderBannerGPS(){
+  try{
+    var texto = document.getElementById('banner-gps-texto').textContent;
+    registrarEventoRider(_tipoAvisoMostrandoseAhora, texto, 'si');
+    cerrarBannerGPS(false); // false = no volver a registrar, ya se registró como "si"
+    showToast('✅ Recibido');
+    _gpsUltimoMovimientoTs = Date.now(); // reinicia el contador, evita repreguntar de inmediato
+  }catch(e){ console.warn('[responderBannerGPS]', e); }
+}
+
+function abrirGananciasOv(){
+  try{
+    document.getElementById('ganancias-ov').style.display = 'flex';
+    cargarGananciasRider();
+  }catch(e){ console.warn('[abrirGananciasOv]', e); }
+}
+
+// ── MOSTRAR / OCULTAR SALDOS ──
+var _valoresRealesSaldos = {};
+function saldosOcultos(){
+  try{ return localStorage.getItem('lavobcn_saldos_ocultos')==='1'; }catch(e){ return false; }
+}
+function aplicarOcultoSiCorresponde(){
+  try{
+    var oculto = saldosOcultos();
+    var ojo = document.getElementById('ojo-saldos');
+    if(ojo) ojo.textContent = oculto ? '🙈' : '👁️';
+    var mascara = '••••';
+    var upd = function(id, valorReal){ var e=document.getElementById(id); if(e) e.textContent = oculto ? mascara : valorReal; };
+    upd('rg-dia-e', _valoresRealesSaldos.dE||'0€');
+    upd('rg-sem-e', _valoresRealesSaldos.sE||'0€');
+    upd('rg-mes-e', _valoresRealesSaldos.mE||'0€');
+    upd('sb-e', _valoresRealesSaldos.sbE||'0€');
+    upd('sb-p', _valoresRealesSaldos.sbP||'0€');
+  }catch(e){ console.warn('[aplicarOcultoSiCorresponde]', e); }
+}
+function toggleSaldosRider(){
+  try{
+    var nuevoEstado = !saldosOcultos();
+    localStorage.setItem('lavobcn_saldos_ocultos', nuevoEstado ? '1' : '0');
+    vib();
+    aplicarOcultoSiCorresponde();
+  }catch(e){ console.warn('[toggleSaldosRider]', e); }
+}
+function conectar(){ toggleSt(); }
+
+// ── RESPALDO CONFIABLE: busca pedidos pendientes con fetch() directo (no depende del SDK) ──
+var _ridePoll = null;
+var _ridePedidosVistos = {};
+
+// ── WAKE LOCK — evita que la pantalla se apague mientras el rider está conectado ──
+var _wakeLock = null;
+async function activarWakeLock(){
+  try{
+    if('wakeLock' in navigator && !_wakeLock){
+      _wakeLock = await navigator.wakeLock.request('screen');
+      _wakeLock.addEventListener('release', function(){
+        _wakeLock = null;
+        // Si pierde el lock (llamada, ej.), lo reintenta al volver la pantalla
+        document.addEventListener('visibilitychange', function reintentarWakeLock(){
+          if(document.visibilityState==='visible' && stOn) activarWakeLock();
+          document.removeEventListener('visibilitychange', reintentarWakeLock);
+        });
+      });
+      console.log('[WakeLock] Pantalla bloqueada activa');
+    }
+  }catch(e){ console.warn('[WakeLock] No disponible:', e.message); }
+}
+function liberarWakeLock(){
+  try{ if(_wakeLock){ _wakeLock.release(); _wakeLock=null; } }catch(e){}
+}
+
+// ── TIEMPOS ADAPTATIVOS DE TIMBRE ──
+// 4s = pedido entrante urgente (alguien lo tiene que aceptar ya)
+// 8s = en ruta activa (rider está entregando)
+// 15s = conectado sin pedido (idle)
+function tiempoRing(){
+  if(pedPend) return 12000;   // 12s entre avisos de pedido entrante — insistente pero no cansón
+  if(pedActivo) return 20000; // 20s en ruta
+  return 30000;               // 30s idle
+}
+
+// Pedidos más antiguos de 20 minutos NO se muestran (ya expiró la ventana de aceptación)
+var MAXIMO_EDAD_PEDIDO_MS = 20 * 60 * 1000;
+
+async function buscarPedidosPendientes(){
+  try{
+    if(!stOn || pedActivo) return;
+    var ahora = Date.now();
+
+    // 1) Pedidos individuales (moto, mensajería, Amazon)
+    // OPTIMIZADO: filtro en servidor — solo trae pendientes, no todo el historial
+    var r = await fetch('https://lavobcn-default-rtdb.europe-west1.firebasedatabase.app/pedidos.json?orderBy="estado"&equalTo="pendiente"');
+    var data = await r.json() || {};
+    var pendiente = Object.values(data).find(function(p){
+      if(!p || p.estado!=='pendiente') return false;
+      if(_ridePedidosVistos[p.ref]) return false;
+      // Rechazar pedidos muy antiguos — ya no tiene sentido mostrarlos
+      var edad = ahora - (p.ts || 0);
+      if(p.ts && edad > MAXIMO_EDAD_PEDIDO_MS) return false;
+      return true;
+    });
+    if(pendiente){
+      _ridePedidosVistos[pendiente.ref] = true;
+      pedPend = {
+        ref: pendiente.ref,
+        lav: pendiente.local || pendiente.lavanderia || 'LavoBCN',
+        dir: pendiente.dir || pendiente.destino || '',
+        precio: pendiente.total || (pendiente.precio ? pendiente.precio+'€' : '5€'),
+        serv: pendiente.tipo === 'moto' ? 'Moto Taxi' : (pendiente.tipo === 'mensajeria' ? 'Mensajería' : 'Lavandería'),
+        telCliente: pendiente.tel || pendiente.telefono || '',
+        codigo: pendiente.codigo || '',
+        fase: 0,
+        firebaseKey: pendiente.ref
+      };
+      mostrarPedidoEntrante();
+      return;
+    }
+
+    // 2) Despachos de lavandería
+    // OPTIMIZADO: filtro en servidor — solo pendientes
+    var r2 = await fetch('https://lavobcn-default-rtdb.europe-west1.firebasedatabase.app/despachos.json?orderBy="estado"&equalTo="pendiente"');
+    var data2 = await r2.json() || {};
+    var despacho = Object.values(data2).find(function(d){
+      if(!d || d.estado!=='pendiente') return false;
+      if(_ridePedidosVistos[d.ref]) return false;
+      var edad = ahora - (d.ts || 0);
+      if(d.ts && edad > MAXIMO_EDAD_PEDIDO_MS) return false;
+      return true;
+    });
+    if(despacho){
+      _ridePedidosVistos[despacho.ref] = true;
+      var primeraParada = (despacho.paradas && despacho.paradas[0]) || {};
+      pedPend = {
+        ref: despacho.ref,
+        lav: despacho.lavanderia || 'LavoBCN',
+        dir: primeraParada.dest || '',
+        precio: despacho.coste_rider ? (despacho.coste_rider+'€') : '5€',
+        serv: 'Ruta · '+(despacho.total_viajes||1)+' viaje'+((despacho.total_viajes||1)!==1?'s':''),
+        telCliente: '',
+        codigo: '',
+        fase: 0,
+        firebaseKey: despacho.ref,
+        esDespacho: true
+      };
+      mostrarPedidoEntrante();
+      return;
+    }
+  }catch(e){ /* sin conexión — se reintenta en el próximo ciclo */ }
+}
+
+var _viajesAsigPoll = null;
+function iniciarPollingPedidos(){
+  detenerPollingPedidos();
+  // Polling a 8s cuando está idle (sin pedido activo) — suficientemente rápido sin martillear Firebase
+  // Si hay pedido activo no necesita buscar más — ya tiene uno
+  _ridePoll = setInterval(buscarPedidosPendientes, 2000);
+  buscarPedidosPendientes(); // búsqueda inmediata al conectar
+  if(_viajesAsigPoll) clearInterval(_viajesAsigPoll);
+  _viajesAsigPoll = setInterval(revisarViajesAsignados, 15000);
+  revisarViajesAsignados();
+}
+function detenerPollingPedidos(){
+  if(_ridePoll){ clearInterval(_ridePoll); _ridePoll = null; }
+  if(_viajesAsigPoll){ clearInterval(_viajesAsigPoll); _viajesAsigPoll = null; }
+}
+
+// ── DOCUMENTOS: checklist estilo Uber, con foto + estado de verificación ──
+var DOCS_REQUERIDOS_RIDER = [
+  {key:'dni', nombre:'DNI / NIE', emoji:'🪪'},
+  {key:'selfie', nombre:'Selfie de verificación', emoji:'🤳'},
+  {key:'carnet', nombre:'Carnet de conducir', emoji:'🚗'},
+  {key:'seguro', nombre:'Seguro del vehículo', emoji:'📋'}
+];
+var _docsActualKeyRider = null;
+
+function sonidoDoc(){
+  try{
+    var ctx = obtenerAudioCtx(); if(!ctx) return;
+    var o = ctx.createOscillator(), g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.type='sine'; o.frequency.value=740;
+    g.gain.setValueAtTime(.0001, ctx.currentTime);
+    g.gain.linearRampToValueAtTime(.18, ctx.currentTime+.01);
+    g.gain.exponentialRampToValueAtTime(.0001, ctx.currentTime+.25);
+    o.start(ctx.currentTime); o.stop(ctx.currentTime+.25);
+  }catch(e){}
+}
+
+async function renderDocsListaRider(){
+  try{
+    var lista = document.getElementById('docs-lista-rider');
+    var r = await fetch(FIREBASE_BASE_DOCS()+'/riders_docs/'+userKey+'.json');
+    var data = await r.json() || {};
+    var pendientes = 0;
+    lista.innerHTML = DOCS_REQUERIDOS_RIDER.map(function(d){
+      var info = data[d.key] || {estado:'pendiente'};
+      if(info.estado==='pendiente' || info.estado==='rechazado') pendientes++;
+      var stTxt = {pendiente:'⏳ Pendiente de subir', enviado:'🟡 Enviado · esperando verificación', verificado:'✅ Verificado', rechazado:'❌ Rechazado · vuelve a subirlo'}[info.estado] || '⏳ Pendiente';
+      var icoHtml = info.foto ? '<img src="'+info.foto+'">' : d.emoji;
+      return '<div class="doc-item" onclick="abrirCamaraDoc(\''+d.key+'\',\'rider\')">'+
+        '<div class="doc-ico">'+icoHtml+'</div>'+
+        '<div style="flex:1;"><div class="doc-nm">'+d.nombre+'</div><div class="doc-st '+info.estado+'">'+stTxt+'</div></div>'+
+        '</div>';
+    }).join('');
+    var badge = document.getElementById('docs-badge-rider');
+    if(badge){ badge.style.display = pendientes>0 ? 'flex' : 'none'; badge.textContent = pendientes; }
+  }catch(e){ console.warn('[renderDocsListaRider]', e); }
+}
+
+function FIREBASE_BASE_DOCS(){ return 'https://lavobcn-default-rtdb.europe-west1.firebasedatabase.app'; }
+
+function abrirDocsRider(){
+  try{
+    document.getElementById('docs-ov-rider').classList.add('on');
+    renderDocsListaRider();
+  }catch(e){ console.warn('[abrirDocsRider]', e); }
+}
+
+function abrirCamaraDoc(key, rol){
+  _docsActualKeyRider = key;
+  document.getElementById('docs-foto-input-'+rol).click();
+}
+
+function subirDocFoto(input, rol){
+  try{
+    var file = input.files && input.files[0];
+    if(!file) return;
+    var reader = new FileReader();
+    reader.onload = function(e){
+      var img = new Image();
+      img.onload = function(){
+        var maxW = 600;
+        var escala = Math.min(1, maxW/img.width);
+        var canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.width*escala);
+        canvas.height = Math.round(img.height*escala);
+        var ctx = canvas.getContext('2d');
+        ctx.drawImage(img,0,0,canvas.width,canvas.height);
+        var foto = canvas.toDataURL('image/jpeg', 0.65);
+        fetch(FIREBASE_BASE_DOCS()+'/riders_docs/'+userKey+'/'+_docsActualKeyRider+'.json', {
+          method:'PUT', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({estado:'enviado', foto:foto, ts:Date.now()})
+        }).then(function(){
+          sonidoDoc();
+          renderDocsListaRider();
+        }).catch(function(){});
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+    input.value = '';
+  }catch(e){ console.warn('[subirDocFoto]', e); }
+}
+
+
+// ── PEDIDO ACTIVO ──
+function mostrarPedido(p){
+  pedActivo=p;
+  _tsUltimoPedido = Date.now();
+  resetearEtapa('sin_pedidos');
+  resetearEtapa('zona_pedidos');
+  iniciarVigilanteCancelacion(p.ref);
+  document.getElementById('bs-search').style.display='none';
+  document.getElementById('bs-ped').style.display='block';
+  var bc=document.getElementById('btn-conectar'); if(bc) bc.style.display='none';
+  var lav=LAVS.find(function(l){return l.n===p.lav;})||LAVS[0];
+  document.getElementById('ped-lav').textContent=p.lav;
+  document.getElementById('ped-addr').textContent=lav.addr;
+  // CRÍTICO: fijar coords GPS de ESTA lavandería para que "Navegar" abra la ruta correcta
+  window._nl = lav.lat;
+  window._nlg = lav.lng;
+  document.getElementById('ped-emp').textContent='Empresa: '+p.lav;
+  document.getElementById('ped-tiempo').textContent='Listo en aprox. '+Math.floor(3+Math.random()*8)+' minutos';
+  document.getElementById('ped-ref').textContent=p.ref;
+  document.getElementById('ped-ref-sub').textContent='Muestra este número en '+p.lav+' para retirar';
+  var btn=document.getElementById('btn-ret');btn.textContent='Retirar';btn.className='btn-ret';
+  document.getElementById('fab-nav').classList.add('show');
+  if(mapObj)mapObj.setView([lav.lat,lav.lng],16);
+}
+
+function accion(){
+  if(!pedActivo)return;
+
+  if(pedActivo.fase===0){
+    // FASE 0 → 1: Retirado de la lavandería, en camino
+    pedActivo.fase=1;
+    var btn=document.getElementById('btn-ret');
+    btn.textContent='📍 He llegado al cliente';
+    btn.className='btn-ret go';
+    showToast('📦 Retirado — en camino al cliente');
+    addAdmin('📦 '+nombre+' retiró '+pedActivo.ref);
+    // Mostrar dirección cliente si existe
+    var pedAddr = document.getElementById('ped-addr');
+    if(pedAddr && pedActivo.dirCliente) pedAddr.textContent = '📍 Entregar en: '+pedActivo.dirCliente;
+
+  } else if(pedActivo.fase===1){
+    // FASE 1 → 2: Rider llega al cliente — LLAMADA AUTOMÁTICA
+    pedActivo.fase=2;
+    var btn=document.getElementById('btn-ret');
+    btn.textContent='✓ Entregado — introducir código';
+    btn.className='btn-ret go';
+    showToast('📞 Avisando al cliente...');
+    addAdmin('📍 '+nombre+' llegó al cliente · '+pedActivo.ref);
+
+    // Llamar automáticamente al cliente
+    var telCliente = pedActivo.telCliente || '';
+    if(telCliente){
+      // Mostrar modal de llamada
+      mostrarLlamadaAuto(telCliente, pedActivo.ref);
+    }
+
+  } else {
+    // FASE 2: Introducir código de entrega
+    document.getElementById('cod-modal').classList.add('show');
+    document.getElementById('cod1').value='';document.getElementById('cod2').value='';
+    document.getElementById('cod-err').style.display='none';
+    setTimeout(function(){document.getElementById('cod1').focus();},300);
+  }
+}
+
+function mostrarLlamadaAuto(tel, ref){
+  // Crear modal de llamada automática
+  var old = document.getElementById('llamada-modal');
+  if(old) old.remove();
+
+  var modal = document.createElement('div');
+  modal.id = 'llamada-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:600;display:flex;align-items:center;justify-content:center;padding:24px;';
+  modal.innerHTML =
+    '<div style="background:#1e293b;border:2px solid #10b981;border-radius:20px;padding:28px 24px;width:100%;max-width:340px;text-align:center;">'
+    + '<div style="font-size:48px;margin-bottom:12px;">📞</div>'
+    + '<div style="font-size:18px;font-weight:900;color:#fff;margin-bottom:6px;">¡Llama al cliente!</div>'
+    + '<div style="font-size:13px;color:#64748b;margin-bottom:6px;">Pedido: <b style="color:#fff">' + ref + '</b></div>'
+    + '<div style="font-size:13px;color:#64748b;margin-bottom:20px;">El cliente no sabe que has llegado — llámale ahora</div>'
+    + '<a href="tel:' + tel + '" onclick="document.getElementById(&#39;llamada-modal&#39;).remove()" style="display:block;width:100%;padding:16px;border-radius:14px;background:linear-gradient(135deg,#2563eb,#10b981);color:#fff;text-decoration:none;font-size:16px;font-weight:900;margin-bottom:10px;">📞 Llamar ahora</a>'
+    + '<a href="https://wa.me/' + tel.replace(/\D/g,'') + '?text=' + encodeURIComponent('Hola soy tu rider de LavoBCN. He llegado a tu dirección con tu pedido ' + ref + '. ¿Puedes bajar?') + '" target="_blank" onclick="document.getElementById(&#39;llamada-modal&#39;).remove()" style="display:block;width:100%;padding:14px;border-radius:14px;background:#25D366;color:#fff;text-decoration:none;font-size:15px;font-weight:800;margin-bottom:10px;">💬 WhatsApp al cliente</a>'
+    + '<button onclick="document.getElementById(&#39;llamada-modal&#39;).remove()" style="width:100%;padding:12px;border-radius:14px;background:#334155;color:#94a3b8;border:none;font-size:14px;cursor:pointer;font-family:inherit;">Ya contacté con el cliente</button>'
+    + '<div style="font-size:11px;color:#475569;margin-top:12px;">Si no contesta en 2 min → espera 1 min más y continúa</div>'
+    + '</div>';
+
+  document.body.appendChild(modal);
+
+  // Auto-intentar llamar después de 3 segundos
+  setTimeout(function(){
+    if(document.getElementById('llamada-modal')){
+      window.location.href = 'tel:' + tel;
+    }
+  }, 3000);
+}
+
+function llamar(){var l=LAVS.find(function(x){return x.n===pedActivo&&pedActivo.lav;});if(l)window.location.href='tel:'+l.tel;}
+
+function copiarRef(){var r=document.getElementById('ped-ref').textContent;if(navigator.clipboard)navigator.clipboard.writeText(r).then(function(){showToast('📋 '+r+' copiado');});else showToast('📋 '+r);}
+
+// ── CÓDIGO ENTREGA ──
+function checkCod(){var d1=document.getElementById('cod1').value,d2=document.getElementById('cod2').value;if(d1&&d2)setTimeout(verificarCod,200);}
+function verificarCod(){
+  var cod=document.getElementById('cod1').value+document.getElementById('cod2').value;
+  if(cod.length===2&&!isNaN(cod)&&parseInt(cod)>=10){
+    cerrarCod();completarEntrega();
+  } else {
+    document.getElementById('cod-err').style.display='block';
+    document.getElementById('cod1').value='';document.getElementById('cod2').value='';
+    document.getElementById('cod1').focus();
+    if(navigator.vibrate)navigator.vibrate([100,50,100]);
+  }
+}
+function cerrarCod(){document.getElementById('cod-modal').classList.remove('show');}
+// ── GRÁFICO DE LOS ÚLTIMOS 7 DÍAS (con respaldo si Chart.js no carga) ──
+var _graficoRiderInstancia = null;
+function dibujarGrafico7Dias(dias7){
+  try{
+    var canvas = document.getElementById('grafico-7dias');
+    if(!canvas) return;
+    if(typeof Chart === 'undefined'){
+      // Respaldo: si la librería de gráficos no cargó (sin internet), no rompemos nada
+      var cont = canvas.parentElement;
+      if(cont) cont.innerHTML = '<div style="font-size:11px;color:rgba(255,255,255,.45);text-align:center;padding:20px 0;">📊 Gráfico no disponible sin conexión</div>';
+      return;
+    }
+    var claves = Object.keys(dias7).sort();
+    var etiquetas = claves.map(function(k){ var p=k.split('-'); return p[2]+'/'+p[1]; });
+    var valores = claves.map(function(k){ return dias7[k].e; });
+
+    if(_graficoRiderInstancia){ _graficoRiderInstancia.destroy(); }
+    _graficoRiderInstancia = new Chart(canvas.getContext('2d'), {
+      type: 'bar',
+      data: { labels: etiquetas, datasets: [{ data: valores, backgroundColor: '#10b981', borderRadius: 6 }] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(ctx){ return ctx.parsed.y.toFixed(2)+'€'; } } } },
+        scales: {
+          x: { ticks: { color: 'rgba(255,255,255,.5)', font:{size:10} }, grid: { display:false } },
+          y: { display:false, beginAtZero:true }
+        }
+      }
+    });
+  }catch(e){ console.warn('[dibujarGrafico7Dias]', e); }
+}
+
+async function cargarGananciasRider(){
+  // Pintar de inmediato lo último que sabíamos (caché local) para que nunca se vea en blanco
+  try{
+    var cache = localStorage.getItem('lavobcn_rider_ganancias_cache');
+    if(cache){
+      var c = JSON.parse(cache);
+      var updRapido=function(id,v){var e=document.getElementById(id);if(e)e.textContent=v;};
+      updRapido('rg-dia-v',c.dV+' viaje'+(c.dV!==1?'s':'')); updRapido('rg-dia-e',c.dE);
+      updRapido('rg-sem-v',c.sV); updRapido('rg-sem-e',c.sE);
+      updRapido('rg-mes-v',c.mV); updRapido('rg-mes-e',c.mE);
+      updRapido('sb-sem',c.sV);
+    }
+  }catch(e){}
+
+  try{
+    var FIREBASE="https://lavobcn-default-rtdb.europe-west1.firebasedatabase.app";
+    // Leer pedidos completados del rider desde Firebase
+    var r=await fetch(FIREBASE+"/pedidos.json?orderBy=%22riderKey%22&equalTo=%22"+userKey+"%22");
+    var data=await r.json()||{};
+    var arr=Object.values(data).filter(function(p){return p&&p.estado==='entregado';});
+    var hoy=fechaLocalStr();
+    var ahora=new Date();
+    var inicioSem=new Date(ahora); inicioSem.setDate(ahora.getDate()-ahora.getDay()); inicioSem.setHours(0,0,0,0);
+    var inicioMes=new Date(ahora.getFullYear(),ahora.getMonth(),1);
+    var PRECIO_VIAJE=3.50;
+    var dV=0,dE=0,sV=0,sE=0,mV=0,mE=0;
+    arr.forEach(function(p){
+      var d=new Date(p.ts||0);
+      var e=parseFloat(String(p.total||PRECIO_VIAJE).replace(/[^0-9.]/g,''))||PRECIO_VIAJE;
+      var dia=fechaLocalStr(new Date(p.ts||0));
+      if(dia===hoy){dV++;dE+=e;}
+      if(d>=inicioSem){sV++;sE+=e;}
+      if(d>=inicioMes){mV++;mE+=e;}
+    });
+    // También contar viajes del rider desde /viajes (sistema antiguo)
+    var r2=await fetch(FIREBASE+"/viajes.json");
+    var vdata=await r2.json()||{};
+    Object.values(vdata).filter(Boolean).forEach(function(v){
+      if(!v.rider||v.rider!==userKey) return;
+      var d=new Date(v.ts||0);
+      var dia=fechaLocalStr(new Date(v.ts||0));
+      var nv=v.num_viajes||1; var e=(v.coste||0);
+      if(dia===hoy){dV+=nv;dE+=e;}
+      if(d>=inicioSem){sV+=nv;sE+=e;}
+      if(d>=inicioMes){mV+=nv;mE+=e;}
+    });
+    // ── NUEVO: contar despachos enviados por las lavanderías (Perfect Clean y Prim) ──
+    var r3=await fetch(FIREBASE+"/despachos.json");
+    var ddata=await r3.json()||{};
+    var despV=0, despE=0, despVeh={moto:0,auto:0,patin:0};
+    var dias7 = {}; // 'YYYY-MM-DD' -> {viajes, euros}
+    for(var i=0;i<7;i++){
+      var dd=new Date(ahora); dd.setDate(ahora.getDate()-i);
+      dias7[fechaLocalStr(dd)] = {v:0, e:0};
+    }
+    function sumarADia7(diaStr, nv, e){ if(dias7[diaStr]){ dias7[diaStr].v+=nv; dias7[diaStr].e+=e; } }
+
+    arr.forEach(function(p){ sumarADia7(fechaLocalStr(new Date(p.ts||0)), 1, parseFloat(String(p.total||PRECIO_VIAJE).replace(/[^0-9.]/g,''))||PRECIO_VIAJE); });
+    Object.values(vdata).filter(Boolean).forEach(function(v){
+      if(!v.rider||v.rider!==userKey) return;
+      sumarADia7(fechaLocalStr(new Date(v.ts||0)), v.num_viajes||1, v.coste||0);
+    });
+
+    Object.values(ddata).filter(Boolean).forEach(function(d){
+      var dia = d.dia || fechaLocalStr(new Date(d.ts||0));
+      var fecha = new Date(d.ts||0);
+      var nv = d.total_viajes||0;
+      var e = d.coste_rider||0;
+      if(dia===hoy){dV+=nv;dE+=e;}
+      if(fecha>=inicioSem){sV+=nv;sE+=e;despV+=nv;despE+=e;}
+      if(fecha>=inicioMes){mV+=nv;mE+=e;}
+      sumarADia7(dia, nv, e);
+      (d.paradas||[]).forEach(function(p){ despVeh[p.vehiculo||'moto']=(despVeh[p.vehiculo||'moto']||0)+1; });
+    });
+
+    var updV=function(id,v){var e=document.getElementById(id);if(e)e.textContent=v;};
+    updV('rg-desp-v', despV+' viaje'+(despV!==1?'s':''));
+    updV('rg-desp-e', despE.toFixed(2)+'€');
+    var vehTxt=[];
+    if(despVeh.moto)  vehTxt.push('🛵 '+despVeh.moto);
+    if(despVeh.auto)  vehTxt.push('🚗 '+despVeh.auto);
+    if(despVeh.patin) vehTxt.push('🛴 '+despVeh.patin);
+    updV('rg-desp-veh', vehTxt.join(' · ')||'Sin viajes esta semana');
+
+    dibujarGrafico7Dias(dias7);
+
+    var upd=function(id,v){var e=document.getElementById(id);if(e)e.textContent=v;};
+    var dEtxt=dE.toFixed(2)+'€', sEtxt=sE.toFixed(2)+'€', mEtxt=mE.toFixed(2)+'€';
+    _valoresRealesSaldos = {dV:dV, dE:dEtxt, sV:sV, sE:sEtxt, mV:mV, mE:mEtxt, sbE:euros+'€', sbP:'0€'};
+    upd('rg-dia-v',dV); upd('rg-dia-e',dEtxt);
+    upd('rg-sem-v',sV); upd('rg-sem-e',sEtxt);
+    upd('rg-mes-v',mV); upd('rg-mes-e',mEtxt);
+    upd('sb-sem',sV);
+    aplicarOcultoSiCorresponde();
+    // Guardar en caché para la próxima vez que se abra (no se pierde si falla la conexión)
+    try{
+      localStorage.setItem('lavobcn_rider_ganancias_cache', JSON.stringify({
+        dV:dV, dE:dEtxt, sV:sV, sE:sEtxt, mV:mV, mE:mEtxt
+      }));
+    }catch(e){}
+  }catch(e){}
+}
+
+function calcularKmRecorridos(){
+  try{
+    if(!_gpsHistorial || _gpsHistorial.length < 2) return 0;
+    var total = 0;
+    for(var i=1;i<_gpsHistorial.length;i++){
+      total += distanciaMetros(_gpsHistorial[i-1].lat, _gpsHistorial[i-1].lng, _gpsHistorial[i].lat, _gpsHistorial[i].lng);
+    }
+    return Math.round((total/1000)*10)/10; // km con 1 decimal
+  }catch(e){ return 0; }
+}
+
+function completarEntrega(){
+  vib(40);
+  hablar('Viaje completado. Buen trabajo.');
+  detenerVigilanteCancelacion();
+  _tsUltimoPedido = Date.now();
+  var kmRecorridos = calcularKmRecorridos();
+  viajes++;euros+=pedActivo.precio;
+  document.getElementById('sb-v').textContent=viajes;document.getElementById('sb-e').textContent=euros+'€';
+  // ── GUARDADO TRANSACCIONAL — persiste la ganancia EN EL ACTO, sin esperar al autosave ──
+  try{
+    var _hoyE = new Date().toISOString().slice(0,10);
+    var _estadoE = {ts:Date.now(), viajes:viajes, euros:euros, dia:_hoyE};
+    localStorage.setItem('lavobcn_as_rider', JSON.stringify(_estadoE));
+    fetch('https://lavobcn-default-rtdb.europe-west1.firebasedatabase.app/autosave/rider.json',{
+      method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(_estadoE)
+    }).catch(function(){});
+  }catch(_e){}
+  showToast('🎉 Entregado · +'+pedActivo.precio+'€');
+  addAdmin('🎉 '+nombre+' completó '+pedActivo.ref+'. +'+pedActivo.precio+'€', null, true);
+
+  var tablaFinal = pedActivo.esDespacho ? 'despachos' : 'pedidos';
+  var refPedido = pedActivo.ref;
+  var nombreRider = nombre||'rider';
+  var precioFinal = pedActivo.precio;
+
+  try{
+    // Actualizar Firebase — estado 'entregado' via SDK (inmediato) Y via fetch (respaldo)
+    // SDK es más rápido porque usa WebSocket ya conectado
+    try{
+      if(fbDBR){
+        fbDBR.ref(tablaFinal+'/'+refPedido+'/estado').set('entregado');
+        fbDBR.ref(tablaFinal+'/'+refPedido+'/rider').set(nombreRider);
+        fbDBR.ref(tablaFinal+'/'+refPedido+'/riderNombre').set(nombreRider);
+        fbDBR.ref(tablaFinal+'/'+refPedido+'/tsEntregado').set(Date.now());
+        fbDBR.ref(tablaFinal+'/'+refPedido+'/codigoVerificado').set(true);
+      }
+    }catch(edb){}
+    // Fetch como respaldo
+    fetch('https://lavobcn-default-rtdb.europe-west1.firebasedatabase.app/'+tablaFinal+'/'+refPedido+'.json', {
+      method:'PATCH', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        estado:'entregado',
+        tsEntregado: Date.now(),
+        km: kmRecorridos,
+        codigoVerificado: true,
+        riderNombre: nombreRider,
+        rider: nombreRider
+      })
+    }).catch(function(){});
+
+    // Push al cliente — llega aunque tenga la app cerrada
+    fetch('https://lavo-notificador.jeffreelancer31.workers.dev/enviar',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        rol:'cliente',
+        title:'🎉 ¡Pedido entregado!',
+        body: nombreRider+' entregó tu pedido '+refPedido
+      })
+    }).catch(function(){});
+
+    // WhatsApp al admin
+    var _dirEntrega = (pedActivo && (pedActivo.dirCliente || pedActivo.dir)) || '—';
+    var _lavEntrega = (pedActivo && pedActivo.lav) || '—';
+    var msgEntrega = '🎉 *PEDIDO ENTREGADO*\n'+
+      '📋 Ref: '+refPedido+'\n'+
+      '📍 Dirección: '+_dirEntrega+'\n'+
+      '🏪 Lavandería: '+_lavEntrega+'\n'+
+      '🛵 Rider: '+nombreRider+'\n'+
+      '📌 Estado: Entregado\n'+
+      '💰 '+precioFinal+'€\n'+
+      '⏰ '+new Date().toLocaleString('es-ES',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+    fetch('https://lavo-notificador.jeffreelancer31.workers.dev/whatsapp',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({text: msgEntrega})
+    }).catch(function(){});
+  }catch(e){}
+
+  document.getElementById('bs-ped').style.display='none';
+
+  // Mostrar "Viaje terminado" 4 segundos antes de volver al modo búsqueda
+  var bsSearch = document.getElementById('bs-search');
+  bsSearch.style.display = 'block';
+  bsSearch.innerHTML = '<div class="bs-ico">🎉</div>'+
+    '<div class="bs-title" style="color:var(--green);">¡Viaje terminado!</div>'+
+    '<div class="bs-sub">+'+precioFinal+' · Buen trabajo, '+nombreRider.split(' ')[0]+'</div>'+
+    '<div style="font-size:11px;color:var(--mut);margin-top:8px;">Ref: '+refPedido+'</div>';
+
+  var bc=document.getElementById('btn-conectar'); if(bc) bc.style.display='';
+  document.getElementById('fab-nav').classList.remove('show');
+  pedActivo=null;
+
+  // Volver al estado de búsqueda normal después de 4 segundos
+  setTimeout(function(){
+    bsSearch.innerHTML = '<div class="bs-ico">🧺</div>'+
+      '<div class="bs-title">Buscando pedidos…</div>'+
+      '<div class="bs-sub">Mantente en la zona de Sant Martí · Barcelona</div>';
+  }, 4000);
+}
+
+// ── GPS NAV ──
+var MAPA_PREF_KEY = 'lavobcn_mapa_preferido';
+function obtenerMapaPreferido(){ try{ return localStorage.getItem(MAPA_PREF_KEY) || null; }catch(e){ return null; } }
+function pintarMapaPreferido(){
+  try{
+    var nombres = {waze:'Waze', google:'Google Maps', apple:'Apple Maps'};
+    var pref = obtenerMapaPreferido();
+    var el = document.getElementById('mapa-pref-txt');
+    if(el) el.textContent = pref ? nombres[pref] : 'Preguntar siempre';
+  }catch(e){}
+}
+function abrirSelectorMapaPreferido(){
+  closeSB();
+  window._modoConfigMapa = true;
+  document.getElementById('gps-modal').classList.add('show');
+}
+
+function openGPS(){
+  if(pedActivo){var l=LAVS.find(function(x){return x.n===pedActivo.lav;});if(l){window._nl=l.lat;window._nlg=l.lng;}}
+  var pref = obtenerMapaPreferido();
+  if(pref){ abrirGPS(pref); return; } // ya guardado, no pregunta cada vez
+  document.getElementById('gps-modal').classList.add('show');
+}
+function cerrarGPS(){document.getElementById('gps-modal').classList.remove('show');}
+function abrirGPS(t){
+  if(window._modoConfigMapa){
+    window._modoConfigMapa = false;
+    try{ localStorage.setItem(MAPA_PREF_KEY, t); }catch(e){}
+    pintarMapaPreferido();
+    cerrarGPS();
+    showToast('✅ Mapa preferido guardado: '+({waze:'Waze',google:'Google Maps',apple:'Apple Maps'}[t]));
+    return;
+  }
+  var lat=window._nl||41.4006,lng=window._nlg||2.2073,url='';if(t==='waze')url='https://waze.com/ul?ll='+lat+','+lng+'&navigate=yes';if(t==='google')url='https://www.google.com/maps/dir/?api=1&destination='+lat+','+lng+'&travelmode=bicycling';if(t==='apple')url='https://maps.apple.com/?daddr='+lat+','+lng+'&dirflg=d';window.open(url,'_blank');cerrarGPS();
+}
+
+// ── INCOMING ──
+function simIncoming(){
+  if(!stOn||!nombre)return;
+  var lav=LAVS[Math.floor(Math.random()*LAVS.length)];
+  var precios=[3,4,6,8],servs=['Lavado','Planchado','Express','Premium'];
+  var pi=Math.floor(Math.random()*4);
+  var ref=genRef();
+  // Teléfonos demo de clientes — en producción vienen del cliente al pedir
+var telsDemoCliente = ['+34612345678','+34698765432','+34677889900','+34655443322','+34644556677'];
+var telClienteDemo = telsDemoCliente[Math.floor(Math.random()*telsDemoCliente.length)];
+pedPend={lav:lav.n,lat:lav.lat,lng:lav.lng,addr:lav.addr,precio:precios[pi],serv:servs[pi],ref:ref,fase:0,telCliente:telClienteDemo};
+  document.getElementById('ip-price').textContent=precios[pi]+'€';
+  document.getElementById('ip-serv').textContent=servs[pi];
+  document.getElementById('ip-lav').textContent=lav.n;
+  document.getElementById('ip-addr').textContent=lav.addr;
+  document.getElementById('ip-dist').textContent='📍 '+(Math.random()+0.3).toFixed(1)+' km · '+Math.floor(3+Math.random()*6)+' min';
+  document.getElementById('ip-ref').textContent='Ref: '+ref;
+  document.getElementById('ip-fill').style.width='100%';
+  document.getElementById('ip-exp').textContent='20s';
+  document.getElementById('incoming').classList.add('show');
+  initIncMap(lav.lat,lav.lng);
+  if(navigator.vibrate)navigator.vibrate([300,100,300,100,300]);
+  pedirNotifPedido(pedPend);
+  expSec=20;clearInterval(expIv);
+  expIv=setInterval(function(){
+    expSec--;
+    document.getElementById('ip-exp').textContent=expSec+'s';
+    document.getElementById('ip-fill').style.width=((expSec/20)*100)+'%';
+    if(expSec<=0){clearInterval(expIv);reject();addAdmin('⚠️ Pedido '+pedPend.ref+' expiró.');}
+  },1000);
+}
+
+function initIncMap(lat,lng){
+  if(!incMap){var el=document.getElementById('inc-map');el.style.height='100%';incMap=L.map('inc-map',{zoomControl:false,attributionControl:false,dragging:false,tap:false});L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{maxZoom:19}).addTo(incMap);}
+  incMap.setView([lat,lng],16);
+  if(incMark)incMark.remove();
+  var html='<div style="width:48px;height:48px;border-radius:50%;background:#10b981;display:flex;align-items:center;justify-content:center;font-size:22px;border:3px solid #fff;box-shadow:0 4px 16px rgba(16,185,129,.5);">🏪</div>';
+  incMark=L.marker([lat,lng],{icon:L.divIcon({html:html,className:'',iconSize:[48,48],iconAnchor:[24,24]})}).addTo(incMap);
+  setTimeout(function(){if(incMap)incMap.invalidateSize();},100);
+}
+
+function accept(){
+  sonidoClic();
+  hablar('Pedido aceptado. Comienza la ruta.');
+  clearInterval(expIv);clearInterval(_ringIv);document.getElementById('incoming').classList.remove('show');
+  if(!pedPend)return;
+  mostrarPedido(pedPend);
+  aceptarEnFirebase(pedPend.ref, pedPend.esDespacho);
+  showToast('✅ Pedido aceptado');
+  addAdmin('✅ '+nombre+' aceptó '+pedPend.ref+' · '+pedPend.lav, null, true);
+  // Avisar al cliente: su rider va en camino
+  try {
+    if(typeof LavoNotif!=='undefined' && pedPend.telCliente){
+      var idCli = String(pedPend.telCliente).replace(/[^0-9]/g,'');
+      LavoNotif.enviar({
+        rol:'cliente', id:idCli,
+        title:'🛵 ¡Tu rider va en camino!',
+        body:'Tu pedido '+pedPend.ref+' fue aceptado. Llega pronto.'
+      });
+    }
+  } catch(eN){}
+  pedPend=null;
+}
+function reject(){sonidoClic();clearInterval(expIv);clearInterval(_ringIv);document.getElementById('incoming').classList.remove('show');pedPend=null;}
+
+// ── NOTIFICACIONES ──
+function pedirNotif(){if('Notification' in window&&Notification.permission==='default')Notification.requestPermission();}
+function notif(t,b){if('Notification' in window&&Notification.permission==='granted')new Notification(t,{body:b,icon:'icons/icon-192.png',tag:'lavobcn'});}
+function pedirNotifPedido(p){notif('🛵 Nuevo pedido — '+p.precio+'€',p.lav+' · '+p.addr+'\n📍 '+((Math.random()+0.3).toFixed(1))+' km · Pago efectivo\n⏱ Expira en 20s');}
+
+// ── CHAT ──
+function initChat(){
+  var feed=document.getElementById('chat-feed');
+  var tw=document.createElement('div');tw.className='tw';tw.id='tw';
+  tw.innerHTML='<div style="background:#fff;border:1.5px solid #e2e8f0;border-radius:16px;border-bottom-left-radius:4px;padding:10px 14px;display:flex;gap:4px;"><span style="width:7px;height:7px;border-radius:50%;background:#94a3b8;animation:td 1.2s ease-in-out infinite;display:inline-block;"></span><span style="width:7px;height:7px;border-radius:50%;background:#94a3b8;animation:td 1.2s ease-in-out infinite .2s;display:inline-block;"></span><span style="width:7px;height:7px;border-radius:50%;background:#94a3b8;animation:td 1.2s ease-in-out infinite .4s;display:inline-block;"></span></div>';
+  feed.appendChild(tw);
+  addAdmin('Hola '+nombre+' 👋 Estoy aquí. Escríbeme lo que necesites.');
+  unread=1;var b=document.getElementById('sup-badge');b.textContent='1';b.classList.add('show');
+}
+
+function addAdmin(txt,h,esRegistroInterno){
+  var feed=document.getElementById('chat-feed'),tw=document.getElementById('tw');
+  var d=document.createElement('div');d.className='cmsg a';
+  d.innerHTML='<div class="cmsg-who">Admin LavoBCN</div><div class="cmsg-bub">'+txt+'</div><div class="cmsg-t">'+(h||hora())+'</div>';
+  feed.insertBefore(d,tw);
+  if(!document.getElementById('soporte').classList.contains('open')){unread++;var b=document.getElementById('sup-badge');b.textContent=unread;b.classList.add('show');if(!esRegistroInterno) hablar('Tienes un mensaje nuevo.');}
+  scrollFeed();
+}
+
+function sendMsg(){
+  var inp=document.getElementById('cinp'),txt=inp.value.trim();if(!txt)return;
+  var feed=document.getElementById('chat-feed'),tw=document.getElementById('tw');
+  var d=document.createElement('div');d.className='cmsg r';
+  d.innerHTML='<div class="cmsg-who">'+nombre+'</div><div class="cmsg-bub">'+txt+'</div><div class="cmsg-t">'+hora()+'</div>';
+  feed.insertBefore(d,tw);inp.value='';inp.style.height='';
+  tw.style.display='flex';scrollFeed();
+  var RESP={'pedido':'✅ ¿Qué pedido? Dame el número.','rider':'🆘 Buscando disponible ahora.','acc':'🚨 ¿Estás bien? ¿Necesitas ambulancia?','app':'📱 Cuéntame qué falla.','pago':'💵 ¿Qué duda tienes?'};
+  var resp='👍 Recibido.';
+  var l=txt.toLowerCase();
+  if(l.includes('perfect')||l.includes('prim'))resp='✅ Anotado. ¿Recoges o entregas?';
+  else if(l.includes('entrega')||l.includes('complet'))resp='🎉 Anotado. Bien hecho.';
+  else if(l.includes('problem'))resp='⚠️ Cuéntame qué pasó.';
+  else if(l.includes('pausa'))resp='⏸ Ok, descansa. Avísame al volver.';
+  setTimeout(function(){tw.style.display='none';addAdmin(resp);},1000+Math.random()*600);
+}
+
+function qs(t){document.getElementById('cinp').value=t;sendMsg();}
+function ayuda(t){var m={pedido:'🛍️ Necesito ayuda con un pedido.',rider:'🆘 Necesito otro repartidor.',acc:'🚨 URGENTE — Accidente o vehículo averiado.',app:'📱 La app tiene un problema.',pago:'💵 Tengo una duda con el pago.'};document.getElementById('cinp').value=m[t]||'Necesito ayuda';sendMsg();}
+function scrollFeed(){var f=document.getElementById('chat-feed');if(f)setTimeout(function(){f.scrollTop=f.scrollHeight;},60);}
+
+// ── UI ──
+function botonActivarAvisos(){
+  sonidoClic();
+  try{
+    if(!('Notification' in window)){ showToast('⚠️ Tu navegador no soporta avisos'); return; }
+    if(Notification.permission === 'granted'){ showToast('✅ Ya están activados'); pintarEstadoAvisos(); return; }
+    if(Notification.permission === 'denied'){ showToast('⚠️ Bloqueados — actívalos en Ajustes del teléfono'); return; }
+    Notification.requestPermission().then(function(permiso){
+      pintarEstadoAvisos();
+      if(permiso === 'granted'){ vib(); showToast('✅ Avisos activados'); try{ if(typeof LavoNotif!=='undefined') LavoNotif.activar('rider', userKey); }catch(e){} }
+      else { showToast('Sin avisos no podrás conectarte para recibir pedidos'); }
+    });
+  }catch(e){ console.warn('[botonActivarAvisos]', e); }
+}
+
+function pintarEstadoAvisos(){
+  try{
+    var el = document.getElementById('estado-avisos-txt');
+    if(!el) return;
+    if(!('Notification' in window)){ el.textContent = 'No disponible'; el.style.color='var(--sub)'; return; }
+    if(Notification.permission === 'granted'){ el.textContent = '✅ Activado'; el.style.color='#10b981'; }
+    else if(Notification.permission === 'denied'){ el.textContent = '⚠️ Bloqueado'; el.style.color='var(--red)'; }
+    else { el.textContent = 'Pendiente'; el.style.color='var(--sub)'; }
+  }catch(e){}
+}
+
+function openSB(){sonidoClic();document.getElementById('sidebar').classList.add('open');cargarGananciasRider();pintarToggleGpsNotif();pintarEstadoAvisos();pintarMapaPreferido();}
+function closeSB(){document.getElementById('sidebar').classList.remove('open');}
+function openSop(){document.getElementById('soporte').classList.add('open');unread=0;var b=document.getElementById('sup-badge');b.textContent='';b.classList.remove('show');scrollFeed();}
+function closeSop(){document.getElementById('soporte').classList.remove('open');}
+function showToast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2800);}
+
+// Animacion typing dots
+var style=document.createElement('style');style.textContent='@keyframes td{0%,60%,100%{transform:translateY(0);}30%{transform:translateY(-5px);}} @keyframes parpadeoBanner{0%,100%{filter:brightness(1);}50%{filter:brightness(1.45);}} .banner-parpadeo{animation:parpadeoBanner .55s ease-in-out 4;}';document.head.appendChild(style);
+
+
+// ARRANQUE ROBUSTO RIDER
+function arrancarRider(){
+  var sl=document.getElementById('screen-login');
+  var ap=document.getElementById('app');
+  if(sl) sl.style.display='flex';
+  if(ap) ap.style.display='none';
+  // Conectar botón login
+  var btn=document.getElementById('lbtn');
+  if(btn && !btn._bound){ btn._bound=true; btn.addEventListener('click', doLogin); }
+  var lc=document.getElementById('lc');
+  if(lc) lc.addEventListener('keyup', function(e){ if(e.key==='Enter') doLogin(); });
+  // Si ya había una sesión guardada, entra directo sin pedir clave de nuevo
+  intentarSesionGuardada();
+}
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded', arrancarRider);
+} else {
+  arrancarRider();
+}
+</script>
+
+<div id="toast" class="toast"></div>
+<!-- MIS GANANCIAS — panel propio, minimalista, fondo oscuro real -->
+<!-- CONFIGURACIÓN -->
+<div id="config-ov" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:920;align-items:flex-end;justify-content:center;">
+  <div style="width:100%;max-width:430px;background:var(--dark);border-radius:22px 22px 0 0;padding:22px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div style="font-size:15px;font-weight:900;color:#fff;">⚙️ Configuración</div>
+      <div onclick="document.getElementById('config-ov').style.display='none';" style="font-size:24px;color:var(--sub);cursor:pointer;">✕</div>
+    </div>
+
+    <button class="sb-link" onclick="botonActivarAvisos()" style="display:flex;align-items:center;justify-content:space-between;background:var(--card);border-radius:12px;margin-bottom:8px;">
+      <span>🔔 Activar avisos</span>
+      <span id="estado-avisos-txt" style="font-size:11px;color:var(--sub);font-weight:700;">Pendiente</span>
+    </button>
+
+    <div class="sb-link" style="display:flex;align-items:center;justify-content:space-between;cursor:default;background:var(--card);border-radius:12px;margin-bottom:8px;">
+      <span>📍 Avisos de ubicación</span>
+      <div id="switch-gps-notif" onclick="toggleGpsNotif()" style="width:36px;height:20px;border-radius:10px;background:#10b981;position:relative;cursor:pointer;flex-shrink:0;transition:background .15s;">
+        <div class="bola" style="width:16px;height:16px;border-radius:50%;background:#fff;position:absolute;top:2px;left:2px;transition:transform .15s;"></div>
+      </div>
+    </div>
+
+    <button class="sb-link" onclick="abrirSelectorMapaPreferido()" style="display:flex;align-items:center;justify-content:space-between;background:var(--card);border-radius:12px;">
+      <span>🗺️ Mapa preferido</span>
+      <span id="mapa-pref-txt" style="font-size:11px;color:var(--sub);font-weight:700;">Waze</span>
+    </button>
+  </div>
+</div>
+
+<!-- MI ZONA DE REPARTO -->
+<div id="zona-ov" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:920;align-items:flex-end;justify-content:center;">
+  <div style="width:100%;max-width:430px;background:var(--dark);border-radius:22px 22px 0 0;padding:22px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div style="font-size:15px;font-weight:900;color:#fff;">🗺 Mi zona de reparto</div>
+      <div onclick="document.getElementById('zona-ov').style.display='none';" style="font-size:24px;color:var(--sub);cursor:pointer;">✕</div>
+    </div>
+    <div style="font-size:12.5px;color:var(--sub);margin-bottom:14px;">Por ahora, tu zona cubre estas 2 lavanderías:</div>
+    <div id="lista-zona"></div>
+  </div>
+</div>
+
+<!-- HISTORIAL DE PEDIDOS -->
+<div id="historial-ov" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:920;align-items:flex-end;justify-content:center;">
+  <div style="width:100%;max-width:430px;max-height:80vh;overflow-y:auto;background:var(--dark);border-radius:22px 22px 0 0;padding:22px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div style="font-size:15px;font-weight:900;color:#fff;">📋 Historial de pedidos</div>
+      <div onclick="document.getElementById('historial-ov').style.display='none';" style="font-size:24px;color:var(--sub);cursor:pointer;">✕</div>
+    </div>
+    <div id="lista-historial"></div>
+  </div>
+</div>
+
+<!-- VIAJES ASIGNADOS POR ADMIN — pendientes de iniciar, con X para rechazar -->
+<!-- PEDIDOS LAVANDERÍA (Perfect Clean / Prim) — mismo estilo del panel de despacho -->
+<div id="lavped-ov" style="display:none;position:fixed;inset:0;z-index:950;background:rgba(0,0,0,.7);align-items:flex-end;justify-content:center;">
+  <div style="width:100%;max-width:430px;background:#0d1117;border-radius:22px 22px 0 0;max-height:90vh;overflow-y:auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px 12px;border-bottom:1px solid #161b22;position:sticky;top:0;background:#0d1117;z-index:1;">
+      <div style="font-size:15px;font-weight:900;color:#e7edf3;" id="lavped-title">🧺 Pedidos lavandería</div>
+      <div onclick="document.getElementById('lavped-ov').style.display='none';" style="color:#566173;font-size:24px;cursor:pointer;line-height:1;">✕</div>
+    </div>
+
+    <!-- PASO 1: elegir lavandería -->
+    <div id="lavped-p1" style="padding:16px 18px 22px;">
+      <div style="font-size:12px;font-weight:700;color:#566173;letter-spacing:.5px;margin-bottom:12px;">¿QUÉ LAVANDERÍA?</div>
+      <button onclick="abrirListaLavRider('pc')" style="width:100%;padding:15px 16px;border-radius:14px;background:#161b22;border:1.5px solid #232c39;color:#e7edf3;font-size:15px;font-weight:800;cursor:pointer;text-align:left;font-family:inherit;display:flex;align-items:center;gap:12px;margin-bottom:9px;">
+        <span style="font-size:24px;">🧺</span>
+        <div style="flex:1;">
+          <div>Perfect Clean</div>
+          <div style="font-size:10px;font-weight:400;color:#566173;margin-top:2px;">Pg. del Taulat 279A</div>
+          <div id="lavped-stat-pc" style="font-size:11px;font-weight:700;color:#566173;margin-top:6px;">Cargando…</div>
+        </div>
+      </button>
+      <button onclick="abrirListaLavRider('prim')" style="width:100%;padding:15px 16px;border-radius:14px;background:#161b22;border:1.5px solid #232c39;color:#e7edf3;font-size:15px;font-weight:800;cursor:pointer;text-align:left;font-family:inherit;display:flex;align-items:center;gap:12px;">
+        <span style="font-size:24px;">👕</span>
+        <div style="flex:1;">
+          <div>Tintorería Prim</div>
+          <div style="font-size:10px;font-weight:400;color:#566173;margin-top:2px;">Sant Martí</div>
+          <div id="lavped-stat-prim" style="font-size:11px;font-weight:700;color:#566173;margin-top:6px;">Cargando…</div>
+        </div>
+      </button>
+    </div>
+
+    <!-- PASO 2: lista de pedidos pendientes de esa lavandería, cada uno con X -->
+    <div id="lavped-p2" style="display:none;padding:12px 18px 28px;">
+      <div onclick="document.getElementById('lavped-p1').style.display='block';document.getElementById('lavped-p2').style.display='none';" style="color:#38bdf8;font-size:13px;font-weight:700;margin-bottom:14px;cursor:pointer;">‹ Volver</div>
+      <div id="lavped-lista"></div>
+    </div>
+  </div>
+</div>
+
+<div id="viajes-asig-ov" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:920;align-items:flex-end;justify-content:center;">
+  <div style="width:100%;max-width:430px;max-height:80vh;overflow-y:auto;background:var(--dark);border-radius:22px 22px 0 0;padding:22px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div style="font-size:15px;font-weight:900;color:#fff;">📲 Viajes asignados</div>
+      <div onclick="document.getElementById('viajes-asig-ov').style.display='none';" style="font-size:24px;color:var(--sub);cursor:pointer;">✕</div>
+    </div>
+    <div style="font-size:12px;color:var(--sub);margin-bottom:14px;">Viajes que el administrador te asignó directamente. Tócalos para empezar, o la ✕ para rechazarlos.</div>
+    <div id="lista-viajes-asig"></div>
+  </div>
+</div>
+
+<div id="ganancias-ov" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:920;align-items:flex-end;justify-content:center;">
+  <div style="width:100%;max-width:430px;max-height:85vh;overflow-y:auto;background:var(--dark);border-radius:22px 22px 0 0;padding:22px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+      <div style="font-size:15px;font-weight:900;color:#fff;">💰 Mis ganancias</div>
+      <div style="display:flex;align-items:center;gap:14px;">
+        <div onclick="toggleSaldosRider()" id="ojo-saldos" style="font-size:18px;cursor:pointer;">👁️</div>
+        <div onclick="document.getElementById('ganancias-ov').style.display='none';" style="font-size:24px;color:var(--sub);cursor:pointer;">✕</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:18px;">
+      <div style="text-align:center;background:var(--card);border-radius:12px;padding:10px 4px;">
+        <div style="font-size:18px;font-weight:900;color:#10b981;" id="rg-dia-v">0</div>
+        <div style="font-size:10px;color:var(--sub);">viajes hoy</div>
+        <div style="font-size:13px;font-weight:800;color:#10b981;" id="rg-dia-e">0€</div>
+      </div>
+      <div style="text-align:center;background:var(--card);border-radius:12px;padding:10px 4px;">
+        <div style="font-size:18px;font-weight:900;color:#38bdf8;" id="rg-sem-v">0</div>
+        <div style="font-size:10px;color:var(--sub);">esta semana</div>
+        <div style="font-size:13px;font-weight:800;color:#38bdf8;" id="rg-sem-e">0€</div>
+      </div>
+      <div style="text-align:center;background:var(--card);border-radius:12px;padding:10px 4px;">
+        <div style="font-size:18px;font-weight:900;color:#f59e0b;" id="rg-mes-v">0</div>
+        <div style="font-size:10px;color:var(--sub);">este mes</div>
+        <div style="font-size:13px;font-weight:800;color:#f59e0b;" id="rg-mes-e">0€</div>
+      </div>
+    </div>
+
+    <div style="font-size:11px;font-weight:700;color:var(--sub);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Últimos 7 días</div>
+    <div style="height:110px;margin-bottom:18px;"><canvas id="grafico-7dias"></canvas></div>
+
+    <div style="background:var(--card);border-radius:12px;padding:14px;">
+      <div style="font-size:11px;font-weight:700;color:var(--sub);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">🧺 Despacho · Perfect Clean + Prim</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-size:16px;font-weight:900;color:#a78bfa;" id="rg-desp-v">0 viajes</div>
+          <div style="font-size:11px;color:var(--sub);">esta semana</div>
+        </div>
+        <div style="font-size:20px;font-weight:900;color:#a78bfa;" id="rg-desp-e">0€</div>
+      </div>
+      <div style="font-size:11px;color:var(--sub);margin-top:6px;" id="rg-desp-veh"></div>
+    </div>
+  </div>
+</div>
+
+<!-- SELECTOR AL CERRAR SESIÓN — no depende de que index.html esté subido -->
+<!-- BANDEJA DE MENSAJES -->
+<div id="mensajes-ov" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:910;align-items:flex-end;justify-content:center;">
+  <div style="width:100%;max-width:430px;max-height:80vh;overflow-y:auto;background:var(--dark);border-radius:22px 22px 0 0;padding:22px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div style="font-size:15px;font-weight:900;color:#fff;">✉️ Mensajes</div>
+      <div onclick="document.getElementById('mensajes-ov').style.display='none';" style="font-size:24px;color:var(--sub);cursor:pointer;">✕</div>
+    </div>
+    <div id="lista-mensajes-rider"></div>
+  </div>
+</div>
+
+<div id="salir-ov" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:900;align-items:flex-end;justify-content:center;">
+  <div style="width:100%;max-width:430px;background:var(--dark);border-radius:22px 22px 0 0;padding:22px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div style="font-size:15px;font-weight:900;color:#fff;">¿Cómo quieres entrar?</div>
+      <div onclick="document.getElementById('salir-ov').style.display='none';" style="font-size:24px;color:var(--sub);cursor:pointer;">✕</div>
+    </div>
+    <button onclick="window.location.href='cliente.html';" style="width:100%;padding:13px;border-radius:12px;background:var(--card);border:1.5px solid var(--bdr);color:#fff;font-size:14px;font-weight:700;margin-bottom:8px;cursor:pointer;font-family:inherit;">📱 Soy cliente</button>
+    <button onclick="location.reload();" style="width:100%;padding:13px;border-radius:12px;background:var(--card);border:1.5px solid var(--bdr);color:#fff;font-size:14px;font-weight:700;margin-bottom:8px;cursor:pointer;font-family:inherit;">🛵 Soy repartidor</button>
+    <button onclick="window.location.href='admin.html';" style="width:100%;padding:13px;border-radius:12px;background:var(--card);border:1.5px solid var(--bdr);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">⚙️ Administración</button>
+  </div>
+</div>
+
+
+<!-- AUTOSAVE IND -->
+<div id="autosave-ind" style="position:fixed;top:8px;right:8px;z-index:99999;background:rgba(13,17,23,.9);border:1px solid #1e293b;border-radius:8px;padding:5px 12px;font-size:11px;font-weight:700;color:#475569;pointer-events:none;transition:all .3s;opacity:0;"><span id="autosave-ico">o</span><span id="autosave-txt"> ...</span></div>
+
+<script>
+// AUTO-GUARDADO GLOBAL LavoBCN
+(function(){
+  var _iv = null;
+  var FB_URL = 'https://lavobcn-default-rtdb.europe-west1.firebasedatabase.app/autosave/rider.json';
+
+  function mostrar(ok, hora){
+    try{
+      var ind = document.getElementById('autosave-ind');
+      var ico = document.getElementById('autosave-ico');
+      var txt = document.getElementById('autosave-txt');
+      if(!ind) return;
+      ind.style.opacity = '1';
+      if(ok){
+        ico.textContent = 'v'; ico.style.color='#10b981';
+        txt.textContent = ' ' + hora; txt.style.color='#10b981';
+        ind.style.borderColor='#10b981';
+        setTimeout(function(){ ind.style.opacity='0'; }, 2500);
+      } else {
+        ico.textContent = 'o'; ico.style.color='#f59e0b';
+        txt.textContent = ' guardando...'; txt.style.color='#f59e0b';
+        ind.style.borderColor='#f59e0b';
+      }
+    }catch(e){}
+  }
+
+  function guardar(){
+    try{
+      mostrar(false);
+      var hora = new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+      var estado = {ts: Date.now(), hora: hora};
+      try{if(typeof stOn!=='undefined')estado.stOn=stOn;}catch(e){} try{if(typeof viajes!=='undefined')estado.viajes=viajes;}catch(e){} try{if(typeof euros!=='undefined')estado.euros=euros;}catch(e){}
+      localStorage.setItem('lavobcn_as_rider', JSON.stringify(estado));
+      fetch(FB_URL, {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(estado)}).catch(function(){});
+      mostrar(true, hora);
+    }catch(e){}
+  }
+
+  function init(){
+    _iv = setInterval(guardar, 3000);
+    guardar();
+  }
+
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init);
+  else setTimeout(init, 1500);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clientes Corporativos · LavoBCN Admin</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+  :root{--bg:#0d1117;--card:#161b22;--border:#30363d;--txt:#e2e8f0;--mut:#8b949e;--accent:#3b82f6;--ok:#10b981;--warn:#f0a13b;--err:#f85149;}
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--txt);padding:16px;padding-bottom:80px;}
+  .head{max-width:640px;margin:0 auto 16px;display:flex;align-items:center;justify-content:space-between;}
+  h1{font-size:20px;font-weight:900;}
+  .sub{font-size:12px;color:var(--mut);}
+  .container{max-width:640px;margin:0 auto;}
+  .btn{padding:12px 16px;border:none;border-radius:10px;font-size:15px;font-weight:800;color:#fff;font-family:inherit;cursor:pointer;}
+  .btn-add{background:var(--ok);width:100%;padding:16px;font-size:16px;margin-bottom:16px;}
+  .btn-add:active{opacity:.85;}
+  .cliente{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px;border-left:5px solid var(--accent);}
+  .cliente.inactivo{opacity:.5;}
+  .c-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+  .c-nombre{font-size:16px;font-weight:800;}
+  .c-tipo{font-size:11px;background:#1e293b;color:var(--mut);padding:3px 8px;border-radius:6px;text-transform:uppercase;}
+  .c-info{font-size:13px;color:var(--mut);line-height:1.6;}
+  .c-acciones{display:flex;gap:8px;margin-top:12px;}
+  .c-acciones .btn{flex:1;padding:10px;font-size:13px;}
+  .btn-edit{background:var(--accent);}
+  .btn-toggle{background:#475569;}
+  .btn-del{background:var(--err);}
+  /* Modal */
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:1000;display:none;align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto;}
+  .modal.open{display:flex;}
+  .modal-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;width:100%;max-width:560px;margin:20px 0;}
+  .modal-card h2{font-size:18px;margin-bottom:16px;}
+  label{display:block;font-size:12px;font-weight:700;color:var(--mut);margin:12px 0 6px;}
+  input,select,textarea{width:100%;padding:12px;background:var(--bg);border:1.5px solid var(--border);border-radius:9px;font-size:15px;color:#fff;font-family:inherit;outline:none;}
+  input:focus,select:focus,textarea:focus{border-color:var(--accent);}
+  .row{display:flex;gap:10px;}
+  .row>div{flex:1;}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
+  .chip{padding:8px 12px;border:1.5px solid var(--border);border-radius:20px;font-size:13px;cursor:pointer;background:var(--bg);color:var(--mut);}
+  .chip.on{background:var(--accent);color:#fff;border-color:var(--accent);}
+  #map{height:220px;border-radius:10px;margin-top:8px;border:1px solid var(--border);}
+  .btn-map{background:#1e293b;width:100%;margin-top:8px;font-size:13px;padding:10px;}
+  .coords{font-size:12px;color:var(--ok);margin-top:6px;font-family:monospace;}
+  .modal-acciones{display:flex;gap:10px;margin-top:20px;}
+  .modal-acciones .btn{flex:1;padding:14px;}
+  .btn-save{background:var(--ok);}
+  .btn-cancel{background:#475569;}
+  .empty{text-align:center;color:var(--mut);padding:40px 20px;font-size:14px;}
+  .loading{text-align:center;color:var(--mut);padding:20px;}
+</style>
+</head>
+<body>
+<div class="head">
+  <div>
+    <h1>🏨 Clientes Corporativos</h1>
+    <div class="sub">Gestión centralizada · Firebase</div>
+  </div>
+</div>
+
+<div class="container">
+  <button class="btn btn-add" onclick="abrirModal()">➕ Añadir cliente nuevo</button>
+  <div id="lista"><div class="loading">Cargando clientes...</div></div>
+</div>
+
+<!-- MODAL FORMULARIO -->
+<div class="modal" id="modal">
+  <div class="modal-card">
+    <h2 id="modal-titulo">Nuevo cliente</h2>
+    <input type="hidden" id="f-id">
+
+    <label>Nombre *</label>
+    <input id="f-nombre" placeholder="Ej: Hotel Vincci Marítimo">
+
+    <label>Empresa</label>
+    <input id="f-empresa" placeholder="Ej: Vincci Hoteles">
+
+    <div class="row">
+      <div>
+        <label>Tipo *</label>
+        <select id="f-tipo">
+          <option value="lavanderia">🧺 Lavandería</option>
+          <option value="hotel">🏨 Hotel</option>
+          <option value="empresa">🏢 Empresa</option>
+          <option value="clinica">🏥 Clínica</option>
+          <option value="restaurante">🍽️ Restaurante</option>
+          <option value="comercio">🏪 Comercio</option>
+          <option value="residencia">🏡 Residencia</option>
+          <option value="hospital">🚑 Hospital</option>
+          <option value="otro">📦 Otro</option>
+        </select>
+      </div>
+      <div>
+        <label>Prioridad</label>
+        <select id="f-prioridad">
+          <option value="alta">⭐ Alta</option>
+          <option value="media" selected>Media</option>
+          <option value="baja">Baja</option>
+        </select>
+      </div>
+    </div>
+
+    <label>Dirección *</label>
+    <input id="f-direccion" placeholder="Calle, número, código postal, ciudad">
+
+    <button class="btn btn-map" onclick="toggleMapa()">📍 Obtener ubicación desde el mapa</button>
+    <div id="map" style="display:none;"></div>
+    <div class="coords" id="f-coords">Sin coordenadas</div>
+
+    <div class="row">
+      <div>
+        <label>Teléfono</label>
+        <input id="f-telefono" placeholder="+34...">
+      </div>
+      <div>
+        <label>Persona de contacto</label>
+        <input id="f-contacto" placeholder="Nombre">
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label>Email</label>
+        <input id="f-email" placeholder="correo@...">
+      </div>
+      <div>
+        <label>Horario</label>
+        <input id="f-horario" placeholder="9:00-20:00">
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label>Zona</label>
+        <input id="f-zona" placeholder="Ej: Eixample">
+      </div>
+      <div>
+        <label>🛵 Vehículo recomendado</label>
+        <select id="f-vehiculo">
+          <option value="moto">🏍️ Moto</option>
+          <option value="patin">🛴 Patín</option>
+          <option value="auto">🚗 Coche</option>
+          <option value="bici">🚲 Bici</option>
+        </select>
+      </div>
+    </div>
+
+    <label>🧺 Servicios que ofrece</label>
+    <div class="chips" id="f-servicios">
+      <div class="chip" data-srv="lavanderia">Lavandería</div>
+      <div class="chip" data-srv="mototaxi">Moto Taxi</div>
+      <div class="chip" data-srv="mensajeria">Mensajería</div>
+      <div class="chip" data-srv="paqueteria">Paquetería</div>
+      <div class="chip" data-srv="recogidas">Recogidas</div>
+      <div class="chip" data-srv="entregas">Entregas</div>
+      <div class="chip" data-srv="especiales">Especiales</div>
+    </div>
+
+    <label>Color identificativo</label>
+    <input type="color" id="f-color" value="#3b82f6" style="height:44px;">
+
+    <label>Observaciones</label>
+    <textarea id="f-observaciones" rows="2" placeholder="Notas para el rider..."></textarea>
+
+    <div class="modal-acciones">
+      <button class="btn btn-cancel" onclick="cerrarModal()">Cancelar</button>
+      <button class="btn btn-save" id="btnGuardar">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  ClienteService INCRUSTADO (versión autónoma, sin módulos)
+//  Misma lógica que /core/ClienteService.js + /core/firebase.js,
+//  metida aquí para funcionar sin subir carpetas. Firebase = fuente única.
+// ═══════════════════════════════════════════════════════════════
+const FB_URL = "https://lavobcn-default-rtdb.europe-west1.firebasedatabase.app";
+const _NODO = "clientes_corporativos";
+const _ORDEN = { alta: 0, media: 1, baja: 2 };
+function _nuevoId(){ return "cc_" + Date.now() + "_" + Math.random().toString(36).slice(2,6); }
+
+const ClienteService = {
+  async listar(opts = {}){
+    let data = {};
+    try { const r = await fetch(`${FB_URL}/${_NODO}.json`); data = (await r.json()) || {}; } catch(e){ data = {}; }
+    let lista = Object.keys(data).map(k => data[k]);
+    if(!opts.incluirInactivos) lista = lista.filter(c => c.activo === true);
+    if(!opts.incluirOcasionales) lista = lista.filter(c => c.categoria_registro !== "ocasional");
+    if(opts.tipo && opts.tipo !== "todos") lista = lista.filter(c => c.tipo === opts.tipo);
+    lista.sort((a,b) => {
+      const pa = _ORDEN[a.prioridad] ?? 1, pb = _ORDEN[b.prioridad] ?? 1;
+      return pa - pb || (a.nombre||"").localeCompare(b.nombre||"");
+    });
+    return lista;
+  },
+  async obtener(id){
+    try { const r = await fetch(`${FB_URL}/${_NODO}/${id}.json`); return await r.json(); } catch(e){ return null; }
+  },
+  async guardar(datos, previo = {}){
+    const id = datos.id || _nuevoId();
+    const cliente = {
+      id,
+      nombre: datos.nombre||"", empresa: datos.empresa||"", tipo: datos.tipo||"otro",
+      direccion: datos.direccion||"", coordenadas: datos.coordenadas||{lat:0,lng:0},
+      telefono: datos.telefono||"", persona_contacto: datos.persona_contacto||"",
+      email: datos.email||"", horario: datos.horario||"", zona: datos.zona||"",
+      vehiculo_recomendado: datos.vehiculo_recomendado||"moto",
+      servicios_disponibles: datos.servicios_disponibles||[],
+      estado: previo.estado||"activo", observaciones: datos.observaciones||"",
+      prioridad: datos.prioridad||"media", color_identificativo: datos.color_identificativo||"#3b82f6",
+      categoria_registro: datos.categoria_registro||"fijo",
+      veces_usado: previo.veces_usado||0, ultima_recogida: previo.ultima_recogida||null,
+      ultimo_servicio: previo.ultimo_servicio||null,
+      fecha_creacion: previo.fecha_creacion||Date.now(), fecha_ultima_actualizacion: Date.now(),
+      activo: previo.activo !== undefined ? previo.activo : true
+    };
+    try {
+      const r = await fetch(`${FB_URL}/${_NODO}/${id}.json`, {
+        method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(cliente)
+      });
+      return { ok:r.ok, status:r.status, id, cliente };
+    } catch(e){ return { ok:false, status:0, id, error:String(e) }; }
+  },
+  async toggleActivo(id, nuevo){
+    try {
+      const r = await fetch(`${FB_URL}/${_NODO}/${id}.json`, {
+        method:"PATCH", headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({ activo:nuevo, fecha_ultima_actualizacion:Date.now() })
+      });
+      return r.ok;
+    } catch(e){ return false; }
+  },
+  async eliminar(id){
+    try { const r = await fetch(`${FB_URL}/${_NODO}/${id}.json`, { method:"DELETE" }); return r.ok; }
+    catch(e){ return false; }
+  },
+  async buscar(texto){
+    const t = (texto||"").toLowerCase().trim();
+    if(!t) return await this.listar();
+    const lista = await this.listar();
+    return lista.filter(c =>
+      (c.nombre||"").toLowerCase().includes(t) ||
+      (c.empresa||"").toLowerCase().includes(t) ||
+      (c.zona||"").toLowerCase().includes(t)
+    );
+  }
+};
+
+let clientes = {};
+let map = null, marker = null;
+let coordsActuales = { lat: 0, lng: 0 };
+
+// ─── Cargar y pintar lista (vía ClienteService) ───
+async function cargar(){
+  try{
+    const lista = await ClienteService.listar({ incluirInactivos: true, incluirOcasionales: true });
+    clientes = {};
+    lista.forEach(c => { clientes[c.id] = c; });
+    pintar();
+  }catch(e){
+    document.getElementById('lista').innerHTML = '<div class="empty">Error al cargar. Revisa la conexión.</div>';
+  }
+}
+
+function pintar(){
+  const ids = Object.keys(clientes);
+  if(ids.length === 0){
+    document.getElementById('lista').innerHTML = '<div class="empty">No hay clientes todavía.<br>Toca "Añadir cliente nuevo".</div>';
+    return;
+  }
+  // Ordenar por prioridad y nombre
+  const orden = { alta: 0, media: 1, baja: 2 };
+  ids.sort((a,b) => (orden[clientes[a].prioridad]||1) - (orden[clientes[b].prioridad]||1) || (clientes[a].nombre||'').localeCompare(clientes[b].nombre||''));
+
+  document.getElementById('lista').innerHTML = ids.map(id => {
+    const c = clientes[id];
+    const tipoIcono = {lavanderia:'🧺',hotel:'🏨',empresa:'🏢',clinica:'🏥',restaurante:'🍽️',comercio:'🏪',residencia:'🏡',hospital:'🚑',otro:'📦'}[c.tipo]||'📦';
+    const servicios = (c.servicios_disponibles||[]).join(', ') || '—';
+    const gpsOk = c.coordenadas && c.coordenadas.lat ? '📍' : '⚠️ sin GPS';
+    return `<div class="cliente ${c.activo?'':'inactivo'}" style="border-left-color:${c.color_identificativo||'#3b82f6'}">
+      <div class="c-top">
+        <div class="c-nombre">${tipoIcono} ${c.nombre}</div>
+        <div class="c-tipo">${c.tipo}</div>
+      </div>
+      <div class="c-info">
+        📍 ${c.direccion||'Sin dirección'} ${gpsOk}<br>
+        📞 ${c.telefono||'—'} · 🛵 ${c.vehiculo_recomendado||'—'}<br>
+        🧺 ${servicios} · ⭐ ${c.prioridad||'media'}
+      </div>
+      <div class="c-acciones">
+        <button class="btn btn-edit" onclick="editar('${id}')">✏️ Editar</button>
+        <button class="btn btn-toggle" onclick="toggleActivo('${id}')">${c.activo?'🔴 Desactivar':'🟢 Activar'}</button>
+        <button class="btn btn-del" onclick="eliminar('${id}')">🗑️</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ─── Modal ───
+function abrirModal(id){
+  document.getElementById('modal').classList.add('open');
+  document.querySelectorAll('.chip').forEach(ch => ch.classList.remove('on'));
+  if(id){
+    const c = clientes[id];
+    document.getElementById('modal-titulo').textContent = 'Editar cliente';
+    document.getElementById('f-id').value = id;
+    document.getElementById('f-nombre').value = c.nombre||'';
+    document.getElementById('f-empresa').value = c.empresa||'';
+    document.getElementById('f-tipo').value = c.tipo||'lavanderia';
+    document.getElementById('f-prioridad').value = c.prioridad||'media';
+    document.getElementById('f-direccion').value = c.direccion||'';
+    document.getElementById('f-telefono').value = c.telefono||'';
+    document.getElementById('f-contacto').value = c.persona_contacto||'';
+    document.getElementById('f-email').value = c.email||'';
+    document.getElementById('f-horario').value = c.horario||'';
+    document.getElementById('f-zona').value = c.zona||'';
+    document.getElementById('f-vehiculo').value = c.vehiculo_recomendado||'moto';
+    document.getElementById('f-color').value = c.color_identificativo||'#3b82f6';
+    document.getElementById('f-observaciones').value = c.observaciones||'';
+    coordsActuales = c.coordenadas || {lat:0,lng:0};
+    (c.servicios_disponibles||[]).forEach(s => {
+      const chip = document.querySelector(`.chip[data-srv="${s}"]`);
+      if(chip) chip.classList.add('on');
+    });
+    actualizarCoords();
+  } else {
+    document.getElementById('modal-titulo').textContent = 'Nuevo cliente';
+    ['f-id','f-nombre','f-empresa','f-direccion','f-telefono','f-contacto','f-email','f-horario','f-zona','f-observaciones'].forEach(i => document.getElementById(i).value = '');
+    document.getElementById('f-tipo').value = 'lavanderia';
+    document.getElementById('f-prioridad').value = 'media';
+    document.getElementById('f-vehiculo').value = 'moto';
+    document.getElementById('f-color').value = '#3b82f6';
+    coordsActuales = {lat:0,lng:0};
+    actualizarCoords();
+  }
+}
+function editar(id){ abrirModal(id); }
+function cerrarModal(){ document.getElementById('modal').classList.remove('open'); if(document.getElementById('map')._leaflet_id){} }
+
+function actualizarCoords(){
+  const el = document.getElementById('f-coords');
+  if(coordsActuales.lat){
+    el.textContent = `📍 ${coordsActuales.lat.toFixed(5)}, ${coordsActuales.lng.toFixed(5)}`;
+    el.style.color = 'var(--ok)';
+  } else {
+    el.textContent = 'Sin coordenadas';
+    el.style.color = 'var(--mut)';
+  }
+}
+
+// ─── Mapa (selector de ubicación) ───
+function toggleMapa(){
+  const mapDiv = document.getElementById('map');
+  if(mapDiv.style.display === 'none'){
+    mapDiv.style.display = 'block';
+    const centro = coordsActuales.lat ? [coordsActuales.lat, coordsActuales.lng] : [41.4006, 2.2073]; // Barcelona
+    if(!map){
+      map = L.map('map').setView(centro, 13);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+      map.on('click', function(e){
+        coordsActuales = { lat: e.latlng.lat, lng: e.latlng.lng };
+        if(marker) marker.setLatLng(e.latlng);
+        else marker = L.marker(e.latlng).addTo(map);
+        actualizarCoords();
+      });
+    } else {
+      map.setView(centro, 13);
+      setTimeout(() => map.invalidateSize(), 100);
+    }
+    if(coordsActuales.lat){
+      if(marker) marker.setLatLng([coordsActuales.lat, coordsActuales.lng]);
+      else marker = L.marker([coordsActuales.lat, coordsActuales.lng]).addTo(map);
+    }
+    setTimeout(() => map.invalidateSize(), 200);
+  } else {
+    mapDiv.style.display = 'none';
+  }
+}
+
+// ─── Guardar (crear o editar) ───
+async function guardar(){
+  const nombre = document.getElementById('f-nombre').value.trim();
+  const direccion = document.getElementById('f-direccion').value.trim();
+  if(!nombre){ alert('El nombre es obligatorio'); return; }
+
+  const servicios = Array.from(document.querySelectorAll('.chip.on')).map(ch => ch.dataset.srv);
+  let id = document.getElementById('f-id').value;
+  const existente = clientes[id] || {};
+
+  const datos = {
+    id: id || undefined,
+    nombre,
+    empresa: document.getElementById('f-empresa').value.trim(),
+    tipo: document.getElementById('f-tipo').value,
+    direccion,
+    coordenadas: coordsActuales,
+    telefono: document.getElementById('f-telefono').value.trim(),
+    persona_contacto: document.getElementById('f-contacto').value.trim(),
+    email: document.getElementById('f-email').value.trim(),
+    horario: document.getElementById('f-horario').value.trim(),
+    zona: document.getElementById('f-zona').value.trim(),
+    vehiculo_recomendado: document.getElementById('f-vehiculo').value,
+    servicios_disponibles: servicios,
+    observaciones: document.getElementById('f-observaciones').value.trim(),
+    prioridad: document.getElementById('f-prioridad').value,
+    color_identificativo: document.getElementById('f-color').value
+  };
+
+  try{
+    const res = await ClienteService.guardar(datos, existente);
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    clientes[res.id] = res.cliente;
+    cerrarModal();
+    pintar();
+  }catch(e){
+    alert('Error al guardar: '+e.message);
+  }
+}
+
+// ─── Toggle activo/inactivo (desactivar sin borrar) ───
+async function toggleActivo(id){
+  const c = clientes[id];
+  const nuevo = !c.activo;
+  try{
+    const ok = await ClienteService.toggleActivo(id, nuevo);
+    if(!ok) throw new Error('no se pudo actualizar');
+    clientes[id].activo = nuevo;
+    pintar();
+  }catch(e){ alert('Error: '+e.message); }
+}
+
+// ─── Eliminar ───
+async function eliminar(id){
+  if(!confirm('¿Eliminar "'+clientes[id].nombre+'" definitivamente?\n\n(Para ocultarlo sin borrar, usa Desactivar)')) return;
+  try{
+    const ok = await ClienteService.eliminar(id);
+    if(!ok) throw new Error('no se pudo eliminar');
+    delete clientes[id];
+    pintar();
+  }catch(e){ alert('Error: '+e.message); }
+}
+
+// ─── Activar chips de servicios (toggle al tocar) ───
+document.querySelectorAll('.chip').forEach(function(ch){
+  ch.onclick = function(){ ch.classList.toggle('on'); };
+});
+
+// Botón guardar
+document.getElementById("btnGuardar").addEventListener("click", guardar);
+
+cargar();
+</script>
+</body>
+</html>

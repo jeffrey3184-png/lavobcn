@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#0d1117">
+<title>LavoBCN · Despacho</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{background:#0d1117;color:#fff;font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:430px;margin:0 auto;min-height:100vh;}
+
+/* HEADER */
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:52px 18px 14px;border-bottom:1px solid #1e293b;}
+.hdr-titulo{font-size:17px;font-weight:900;color:#fff;}
+.hdr-guardado{font-size:11px;font-weight:700;color:#10b981;opacity:0;transition:opacity .3s;background:rgba(16,185,129,.1);padding:3px 10px;border-radius:6px;}
+
+/* SELECTOR LAVANDERÍA */
+.lavs{display:flex;gap:8px;padding:14px 18px;border-bottom:1px solid #1e293b;}
+.lbtn{flex:1;padding:12px;border-radius:12px;border:2px solid #232c39;background:#161b22;font-size:13px;font-weight:800;color:#64748b;cursor:pointer;text-align:center;transition:all .15s;font-family:inherit;}
+.lbtn.on{border-color:#f97316;background:#1a1200;color:#f97316;}
+
+/* DESTINOS */
+.destinos{padding:14px 18px 0;}
+.sec-lbl{font-size:10px;font-weight:700;color:#475569;letter-spacing:.08em;margin-bottom:10px;}
+.dest-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;}
+.dest-btn{background:#161b22;border:1px solid #232c39;border-radius:12px;padding:12px 10px;cursor:pointer;font-family:inherit;}
+.dest-nm{font-size:12px;font-weight:800;color:#e2e8f0;margin-bottom:8px;}
+.dest-cnt{font-size:10px;color:#10b981;font-weight:700;min-height:14px;}
+.dest-actions{display:flex;gap:5px;margin-top:8px;}
+.btn-r{flex:1;padding:7px;border-radius:8px;background:#0a2218;border:1.5px solid #10b981;color:#10b981;font-size:11px;font-weight:800;cursor:pointer;font-family:inherit;}
+.btn-l{flex:1;padding:7px;border-radius:8px;background:#0a1a2a;border:1.5px solid #38bdf8;color:#38bdf8;font-size:11px;font-weight:800;cursor:pointer;font-family:inherit;}
+
+/* VEHÍCULO */
+.vehs{display:flex;gap:8px;padding:0 18px 14px;}
+.veh{flex:1;padding:10px 4px;border-radius:10px;border:1.5px solid #232c39;background:#161b22;text-align:center;cursor:pointer;font-family:inherit;}
+.veh.on{border-color:#f97316;background:#1a1200;}
+.veh .ico{font-size:20px;}
+.veh .nm{font-size:10px;font-weight:700;color:#64748b;margin-top:3px;}
+.veh.on .nm{color:#f97316;}
+
+/* FORMULARIO CLIENTE */
+.cli-form{display:none;margin:0 18px 14px;background:#1a1200;border:2px solid #f97316;border-radius:14px;padding:14px;}
+.cli-form input{width:100%;padding:11px 13px;background:#0d1117;border:1.5px solid #f97316;border-radius:9px;font-size:14px;color:#fff;font-family:inherit;outline:none;margin-bottom:8px;-webkit-text-fill-color:#fff;}
+.cli-form input::placeholder{color:#6b4c2a;}
+.cli-form-btns{display:flex;gap:8px;}
+
+/* LISTA DE VIAJES */
+.lista-wrap{padding:0 18px 100px;}
+.sec-bar{font-size:10px;font-weight:700;letter-spacing:.06em;padding:10px 0 8px;}
+.viaje-card{display:flex;align-items:flex-start;gap:10px;background:#161b22;border-radius:12px;padding:12px;margin-bottom:8px;border:1px solid #232c39;}
+.viaje-card.enviado{border-color:#10b981;opacity:.85;}
+.viaje-num{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;flex-shrink:0;margin-top:2px;}
+.viaje-num.pend{background:#f97316;color:#fff;}
+.viaje-num.env{background:#10b981;color:#04241a;}
+.viaje-info{flex:1;min-width:0;}
+.viaje-dest{font-size:13px;font-weight:800;color:#fff;margin-bottom:3px;}
+.viaje-accion{font-size:11px;font-weight:700;margin-bottom:4px;}
+.viaje-accion.r{color:#10b981;}
+.viaje-accion.l{color:#38bdf8;}
+.viaje-meta{font-size:11px;font-weight:700;color:#f97316;margin-top:2px;}
+.viaje-meta.env{color:#10b981;}
+.viaje-del{font-size:18px;color:#475569;cursor:pointer;padding:2px 4px;flex-shrink:0;}
+
+/* BOTÓN ENVIAR */
+.btn-enviar{position:fixed;bottom:0;left:0;right:0;max-width:430px;margin:0 auto;padding:14px 18px;background:#0d1117;border-top:1px solid #1e293b;}
+.btn-env-inner{width:100%;padding:15px;border-radius:14px;background:#10b981;color:#04241a;border:none;font-size:15px;font-weight:900;cursor:pointer;font-family:inherit;}
+.btn-env-inner:disabled{background:#1e293b;color:#475569;cursor:not-allowed;}
+
+/* TOAST */
+.toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);padding:10px 20px;border-radius:100px;font-size:13px;font-weight:700;z-index:999;opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap;}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-titulo" id="hdr-titulo">🧺 Despacho LavoBCN</div>
+  <div class="hdr-guardado" id="guardado-ind">✓ Guardado</div>
+</div>
+
+<!-- SELECTOR LAVANDERÍA -->
+<div class="lavs">
+  <button class="lbtn on" id="btn-pc" onclick="selLav('pc')">🧺 Perfect Clean</button>
+  <button class="lbtn" id="btn-prim" onclick="selLav('prim')">👕 Tintorería Prim</button>
+</div>
+
+<!-- VEHÍCULO -->
+<div class="vehs">
+  <button class="veh on" id="veh-moto" onclick="selVeh('moto')"><div class="ico">🛵</div><div class="nm">Moto</div></button>
+  <button class="veh" id="veh-auto" onclick="selVeh('auto')"><div class="ico">🚗</div><div class="nm">Auto</div></button>
+  <button class="veh" id="veh-patin" onclick="selVeh('patin')"><div class="ico">🛴</div><div class="nm">Patín</div></button>
+</div>
+
+<!-- DESTINOS -->
+<div class="destinos">
+  <div class="sec-lbl">DESTINOS</div>
+  <!-- Aviso modo respaldo (regla 4) -->
+  <div id="aviso-respaldo" style="display:none;background:#78350f;color:#fbbf24;padding:8px 12px;border-radius:8px;font-size:12px;margin-bottom:8px;text-align:center;">
+    ⚠️ Modo respaldo activado (usando lista local)
+  </div>
+  <!-- Filtros por tipo (regla 5) -->
+  <div id="filtros-tipo" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">
+    <button class="filtro-btn" data-tipo="todos" onclick="filtrarTipo('todos')" style="padding:6px 10px;border:1px solid #334155;border-radius:14px;background:#1e293b;color:#fff;font-size:12px;cursor:pointer;">Todos</button>
+    <button class="filtro-btn" data-tipo="hotel" onclick="filtrarTipo('hotel')" style="padding:6px 10px;border:1px solid #334155;border-radius:14px;background:#0f172a;color:#94a3b8;font-size:12px;cursor:pointer;">🏨 Hoteles</button>
+    <button class="filtro-btn" data-tipo="lavanderia" onclick="filtrarTipo('lavanderia')" style="padding:6px 10px;border:1px solid #334155;border-radius:14px;background:#0f172a;color:#94a3b8;font-size:12px;cursor:pointer;">🧺 Lavanderías</button>
+    <button class="filtro-btn" data-tipo="empresa" onclick="filtrarTipo('empresa')" style="padding:6px 10px;border:1px solid #334155;border-radius:14px;background:#0f172a;color:#94a3b8;font-size:12px;cursor:pointer;">🏢 Empresas</button>
+    <button class="filtro-btn" data-tipo="clinica" onclick="filtrarTipo('clinica')" style="padding:6px 10px;border:1px solid #334155;border-radius:14px;background:#0f172a;color:#94a3b8;font-size:12px;cursor:pointer;">🏥 Clínicas</button>
+    <button class="filtro-btn" data-tipo="restaurante" onclick="filtrarTipo('restaurante')" style="padding:6px 10px;border:1px solid #334155;border-radius:14px;background:#0f172a;color:#94a3b8;font-size:12px;cursor:pointer;">🍽️ Restaurantes</button>
+    <button class="filtro-btn" data-tipo="comercio" onclick="filtrarTipo('comercio')" style="padding:6px 10px;border:1px solid #334155;border-radius:14px;background:#0f172a;color:#94a3b8;font-size:12px;cursor:pointer;">🏪 Comercios</button>
+    <button class="filtro-btn" data-tipo="hospital" onclick="filtrarTipo('hospital')" style="padding:6px 10px;border:1px solid #334155;border-radius:14px;background:#0f172a;color:#94a3b8;font-size:12px;cursor:pointer;">🚑 Hospitales</button>
+    <button class="filtro-btn" data-tipo="otro" onclick="filtrarTipo('otro')" style="padding:6px 10px;border:1px solid #334155;border-radius:14px;background:#0f172a;color:#94a3b8;font-size:12px;cursor:pointer;">📦 Otros</button>
+  </div>
+  <div class="dest-grid" id="dest-grid">
+    <!-- Generado desde Firebase (con respaldo a DESTINOS[]) -->
+  </div>
+
+  <!-- HORA HOTELES -->
+  <div style="background:#1a1200;border:2px solid #f97316;border-radius:11px;padding:11px 13px;margin-bottom:14px;">
+    <div style="font-size:11px;font-weight:700;color:#f97316;margin-bottom:6px;">Hora entrega hoteles (Llevar)</div>
+    <input type="time" id="hora-hotel" value="17:30" style="width:100%;padding:9px;background:#0d1117;border:1.5px solid #f97316;border-radius:9px;font-size:16px;font-weight:700;color:#fff;font-family:inherit;outline:none;-webkit-text-fill-color:#fff;">
+  </div>
+</div>
+
+<!-- FORMULARIO CLIENTE PARTICULAR -->
+<div class="cli-form" id="cli-form">
+  <input id="cli-nom" placeholder="Nombre del cliente" autocomplete="off">
+  <input id="cli-tel" type="tel" placeholder="Teléfono (9 dígitos)" maxlength="15">
+  <input id="cli-dir" placeholder="Dirección y puerta" autocomplete="off">
+  <input id="cli-items" placeholder="¿Qué hay que mover?">
+  <div class="cli-form-btns">
+    <button class="btn-r" onclick="agregarCliente('Recoger')">✅ Recoger</button>
+    <button class="btn-l" onclick="agregarCliente('Llevar')">🚀 Llevar</button>
+  </div>
+</div>
+
+<!-- LISTA DE VIAJES -->
+<div class="lista-wrap">
+  <div id="lista-viajes"></div>
+</div>
+
+<!-- BOTÓN ENVIAR -->
+<div class="btn-enviar">
+  <button class="btn-env-inner" id="btn-enviar" onclick="enviarARider()">Enviar al rider →</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── WHATSAPP AUTOMÁTICO ────────────────────────────────────────────
+var WA_WORKER = 'https://lavo-notificador.jeffreelancer31.workers.dev/whatsapp';
+function enviarWhatsAppAdmin(texto){
+  fetch(WA_WORKER, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({text: texto})
+  }).catch(function(){});
+}
+
+// ─── ESTADO ───────────────────────────────────────────────────────
+var LAV = 'pc';
+var VEH = 'moto';
+var VIAJES = []; // array principal — NUNCA se borra, solo se marca enviado
+var _guardadoTimer = null;
+var FB = 'https://lavobcn-default-rtdb.europe-west1.firebasedatabase.app';
+var LAV_NMS = {pc: 'Perfect Clean', prim: 'Tintoeria Prim'};
+var VEH_NMS = {moto: 'Moto', auto: 'Auto', patin: 'Patin'};
+var VEH_ICO = {moto: 'Moto', auto: 'Auto', patin: 'Patin'};
+var PRECIO = 4; // EUR por viaje
+
+// ─── CLAVE ÚNICA POR LAVANDERÍA EN LOCALSTORAGE ───────────────────
+function claveStorage(){
+  return 'lavobcn_despacho_v2_' + LAV;
+}
+
+// ─── AUTO-GUARDADO ─────────────────────────────────────────────────
+function guardar(){
+  try{
+    var dato = {lav: LAV, veh: VEH, viajes: VIAJES, ts: Date.now()};
+    localStorage.setItem(claveStorage(), JSON.stringify(dato));
+    // Firebase también
+    fetch(FB + '/borradores2/' + LAV + '.json', {
+      method: 'PUT',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(dato)
+    }).catch(function(){});
+    // Mostrar indicador "Guardado"
+    var ind = document.getElementById('guardado-ind');
+    if(ind){ clearTimeout(_guardadoTimer); ind.style.opacity='1'; _guardadoTimer=setTimeout(function(){ind.style.opacity='0';},2000); }
+  }catch(e){}
+}
+
+function cargar(){
+  try{
+    var raw = localStorage.getItem(claveStorage());
+    if(raw){
+      var dato = JSON.parse(raw);
+      if(dato.viajes && dato.viajes.length) VIAJES = dato.viajes;
+      if(dato.veh) selVeh(dato.veh);
+      return;
+    }
+    // Si localStorage está vacío, intentar desde Firebase autosave
+    fetch('https://lavobcn-default-rtdb.europe-west1.firebasedatabase.app/autosave/despacho.json')
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if(!d || !d.VIAJES || !d.VIAJES.length) return;
+        var savedDate = d.ts ? new Date(d.ts).toISOString().slice(0,10) : '';
+        var hoy = new Date().toISOString().slice(0,10);
+        if(savedDate !== hoy) return; // solo del mismo día
+        if(d.LAV && d.LAV !== LAV) return; // solo si es la misma lavandería
+        VIAJES = d.VIAJES;
+        render();
+        mostrarToast('✅ '+VIAJES.length+' viajes recuperados', '#10b981');
+      }).catch(function(){});
+  }catch(e){}
+}
+
+// ─── DESTINOS — array de datos (agregar cliente nuevo = añadir 1 línea aquí) ───
+// esHotel:1 = pide hora de entrega (hoteles, tiendas premium tipo D&G)
+// esHotel:0 = entrega normal sin hora
+var DESTINOS = [
+  {nombre:'Hotel Vincci Marítimo', envio:'Hotel Vincci Maritimo', cnt:'cnt-vm', esHotel:1},
+  {nombre:'Hotel Vincci Bit',      envio:'Hotel Vincci Bit',      cnt:'cnt-vb', esHotel:1},
+  {nombre:'Dolce & Gabbana',       envio:'Dolce & Gabbana',       cnt:'cnt-dg', esHotel:1},
+  {nombre:'La Aguja de Oro',       envio:'La Aguja de Oro',       cnt:'cnt-ag', esHotel:0},
+  {nombre:'Tinte · Pasaje de Roura', envio:'Tinte Pasaje Roura',  cnt:'cnt-ti', esHotel:0},
+  {nombre:'Otra lavandería',       envio:'__OTRA__',              cnt:'cnt-ol', esHotel:0, esOtra:true}
+  // ➕ FUTUROS CLIENTES/HOTELES: añade aquí una línea con el mismo formato
+];
+
+// ═══ CLIENTES CORPORATIVOS DESDE FIREBASE (migración gradual) ═══
+// Regla 3: Firebase primero, DESTINOS hardcodeado como respaldo.
+var CLIENTES_FB = null;
+var MODO_RESPALDO = false;
+var FILTRO_TIPO = 'todos';
+
+async function cargarClientesFirebase(){
+  try{
+    var r = await fetch(FB + '/clientes_corporativos.json');
+    var data = await r.json();
+    if(data && Object.keys(data).length > 0){
+      var activos = Object.keys(data).map(function(k){ return data[k]; })
+        .filter(function(c){ return c.activo === true; });
+      var ordenP = { alta:0, media:1, baja:2 };
+      activos.sort(function(a,b){
+        var pa = ordenP[a.prioridad] !== undefined ? ordenP[a.prioridad] : 1;
+        var pb = ordenP[b.prioridad] !== undefined ? ordenP[b.prioridad] : 1;
+        return pa - pb || (a.nombre||'').localeCompare(b.nombre||'');
+      });
+      CLIENTES_FB = activos;
+      MODO_RESPALDO = false;
+    } else {
+      CLIENTES_FB = null;
+      MODO_RESPALDO = true;
+    }
+  }catch(e){
+    CLIENTES_FB = null;
+    MODO_RESPALDO = true;
+  }
+  pintarDestinos();
+}
+
+var CLIENTE_SELECCIONADO = null;
+function seleccionarClienteFB(nombre){
+  if(!CLIENTES_FB) return;
+  CLIENTE_SELECCIONADO = CLIENTES_FB.find(function(c){ return c.nombre === nombre; }) || null;
+}
+
+function pintarDestinos(){
+  var grid = document.getElementById('dest-grid');
+  if(!grid) return;
+  var html = '';
+
+  var avisoEl = document.getElementById('aviso-respaldo');
+  if(avisoEl) avisoEl.style.display = MODO_RESPALDO ? 'block' : 'none';
+
+  // ── MODO FIREBASE (regla 3) ──
+  if(CLIENTES_FB && CLIENTES_FB.length > 0){
+    var lista = CLIENTES_FB.filter(function(c){
+      return FILTRO_TIPO === 'todos' || c.tipo === FILTRO_TIPO;
+    });
+    lista.forEach(function(c){
+      var envioEsc = (c.nombre||'').replace(/'/g, "\\'");
+      var esHotel = c.tipo === 'hotel' ? 1 : 0;
+      var color = c.color_identificativo || '#3b82f6';
+      html += '<div class="dest-btn" style="border-left:4px solid '+color+'">'+
+        '<div class="dest-nm">'+c.nombre+'</div>'+
+        '<div class="dest-cnt" id="cnt-'+c.id+'"></div>'+
+        '<div class="dest-actions">'+
+          '<button class="btn-r" onclick="seleccionarClienteFB(\''+envioEsc+'\');agregar(\''+envioEsc+'\',\'Recoger\','+esHotel+')">Recoger</button>'+
+          '<button class="btn-l" onclick="seleccionarClienteFB(\''+envioEsc+'\');agregar(\''+envioEsc+'\',\'Llevar\','+esHotel+')">Llevar</button>'+
+        '</div></div>';
+    });
+    html += '<div class="dest-btn">'+
+      '<div class="dest-nm">Cliente particular</div>'+
+      '<div class="dest-cnt" id="cnt-cli"></div>'+
+      '<div class="dest-actions">'+
+        '<button class="btn-r" style="flex:2;" onclick="toggleCliForm()">+ Añadir</button>'+
+      '</div></div>';
+    grid.innerHTML = html;
+    return;
+  }
+
+  // ── MODO RESPALDO (regla 3): DESTINOS hardcodeado ──
+  DESTINOS.forEach(function(d){
+    if(d.esOtra){
+      // "Otra lavandería" — nombre dinámico según la lavandería activa
+      html += '<div class="dest-btn">'+
+        '<div class="dest-nm" id="otra-lav-nm">'+d.nombre+'</div>'+
+        '<div class="dest-cnt" id="'+d.cnt+'"></div>'+
+        '<div class="dest-actions">'+
+          '<button class="btn-r" onclick="agregar(document.getElementById(\'otra-lav-nm\').textContent,\'Recoger\',0)">Recoger</button>'+
+          '<button class="btn-l" onclick="agregar(document.getElementById(\'otra-lav-nm\').textContent,\'Llevar\',0)">Llevar</button>'+
+        '</div></div>';
+    } else {
+      var envioEsc = d.envio.replace(/'/g, "\\'");
+      html += '<div class="dest-btn">'+
+        '<div class="dest-nm">'+d.nombre+'</div>'+
+        '<div class="dest-cnt" id="'+d.cnt+'"></div>'+
+        '<div class="dest-actions">'+
+          '<button class="btn-r" onclick="agregar(\''+envioEsc+'\',\'Recoger\','+d.esHotel+')">Recoger</button>'+
+          '<button class="btn-l" onclick="agregar(\''+envioEsc+'\',\'Llevar\','+d.esHotel+')">Llevar</button>'+
+        '</div></div>';
+    }
+  });
+  // Cliente particular — siempre al final
+  html += '<div class="dest-btn">'+
+    '<div class="dest-nm">Cliente particular</div>'+
+    '<div class="dest-cnt" id="cnt-cli"></div>'+
+    '<div class="dest-actions">'+
+      '<button class="btn-r" style="flex:2;" onclick="toggleCliForm()">+ Añadir</button>'+
+    '</div></div>';
+  grid.innerHTML = html;
+}
+
+// ─── SELECTOR LAVANDERÍA ───────────────────────────────────────────
+var _iniciado = false;
+function selLav(l){
+  if(_iniciado) guardar(); // solo guardar si ya hay datos cargados
+  LAV = l;
+  VIAJES = [];
+  document.getElementById('btn-pc').classList.toggle('on', l==='pc');
+  document.getElementById('btn-prim').classList.toggle('on', l==='prim');
+  pintarDestinos(); // genera los botones (incluye D&G y futuros clientes)
+  var otraNm = document.getElementById('otra-lav-nm');
+  if(otraNm) otraNm.textContent = l==='pc' ? 'Tintoeria Prim' : 'Perfect Clean';
+  document.getElementById('hdr-titulo').textContent = 'Despacho · ' + LAV_NMS[l];
+  cargar();
+  render();
+  _iniciado = true;
+}
+
+// ─── SELECTOR VEHÍCULO ─────────────────────────────────────────────
+function selVeh(v){
+  VEH = v;
+  ['moto','auto','patin'].forEach(function(k){
+    document.getElementById('veh-'+k).classList.toggle('on', k===v);
+  });
+  guardar();
+}
+
+// ─── AGREGAR VIAJE ─────────────────────────────────────────────────
+function agregar(dest, accion, esHotel){
+  var hora = '';
+  if(esHotel && accion==='Llevar'){
+    hora = document.getElementById('hora-hotel').value || '17:30';
+  }
+  var ahora = new Date();
+  // Regla 8: autocargar datos del cliente desde Firebase (si viene de ahí).
+  // No altera la lógica; solo enriquece el viaje con datos extra opcionales.
+  var datosCliente = {};
+  if(CLIENTE_SELECCIONADO && CLIENTE_SELECCIONADO.nombre === dest){
+    datosCliente = {
+      cli_direccion: CLIENTE_SELECCIONADO.direccion || '',
+      cli_coordenadas: CLIENTE_SELECCIONADO.coordenadas || null,
+      cli_telefono: CLIENTE_SELECCIONADO.telefono || '',
+      cli_contacto: CLIENTE_SELECCIONADO.persona_contacto || '',
+      cli_vehiculo: CLIENTE_SELECCIONADO.vehiculo_recomendado || '',
+      cli_observaciones: CLIENTE_SELECCIONADO.observaciones || '',
+      cli_servicios: CLIENTE_SELECCIONADO.servicios_disponibles || []
+    };
+  }
+  VIAJES.push(Object.assign({
+    dest: dest,
+    accion: accion,
+    hora: hora,
+    veh: VEH,
+    ts: Date.now(),
+    fecha: ahora.toLocaleDateString('es-ES', {day:'2-digit', month:'2-digit', year:'2-digit'}),
+    hora_registro: ahora.toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'}),
+    enviado: false,
+    refEnvio: ''
+  }, datosCliente));
+  guardar();
+  render();
+  vibrar();
+}
+
+function agregarCliente(accion){
+  var nom = (document.getElementById('cli-nom').value||'').trim();
+  var tel = (document.getElementById('cli-tel').value||'').trim();
+  var dir = (document.getElementById('cli-dir').value||'').trim();
+  var items = (document.getElementById('cli-items').value||'').trim();
+  if(!nom && !dir){ mostrarToast('Añade nombre o dirección', '#ef4444'); return; }
+  var dest = (nom||'Cliente') + (tel?' · '+tel:'') + (dir?' · '+dir:'');
+  if(items) dest += ' | ' + items;
+  var ahora = new Date();
+  VIAJES.push({
+    dest: dest,
+    accion: accion,
+    hora: '',
+    veh: VEH,
+    ts: Date.now(),
+    fecha: ahora.toLocaleDateString('es-ES', {day:'2-digit', month:'2-digit', year:'2-digit'}),
+    hora_registro: ahora.toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'}),
+    enviado: false,
+    refEnvio: ''
+  });
+  // Limpiar form
+  ['cli-nom','cli-tel','cli-dir','cli-items'].forEach(function(id){ document.getElementById(id).value=''; });
+  document.getElementById('cli-form').style.display = 'none';
+  guardar();
+  render();
+  vibrar();
+}
+
+function toggleCliForm(){
+  var f = document.getElementById('cli-form');
+  f.style.display = f.style.display==='none' ? 'block' : 'none';
+  if(f.style.display==='block') document.getElementById('cli-nom').focus();
+}
+
+// ─── ELIMINAR VIAJE ────────────────────────────────────────────────
+function eliminar(idx){
+  if(!confirm('¿Eliminar este viaje?')) return;
+  VIAJES.splice(idx, 1);
+  guardar();
+  render();
+}
+
+// ─── RENDER ────────────────────────────────────────────────────────
+function render(){
+  var pendientes = VIAJES.filter(function(v){ return !v.enviado; });
+  var enviados   = VIAJES.filter(function(v){ return  v.enviado; });
+  var cont = document.getElementById('lista-viajes');
+  var html = '';
+
+  // Actualizar contadores de tiles — mapa generado desde DESTINOS[]
+  var cnts = {};
+  VIAJES.forEach(function(v){ cnts[v.dest] = (cnts[v.dest]||0)+1; });
+  DESTINOS.forEach(function(d){
+    if(d.esOtra) return;
+    var el = document.getElementById(d.cnt);
+    if(el) el.textContent = cnts[d.envio] ? cnts[d.envio]+' viaje'+(cnts[d.envio]!==1?'s':'') : '';
+  });
+  var cliCnt = VIAJES.filter(function(v){ return v.dest.indexOf('Cliente')>=0 || v.dest.indexOf(' · ')>=0; }).length;
+  var elCli = document.getElementById('cnt-cli');
+  if(elCli) elCli.textContent = cliCnt ? cliCnt+' viaje'+(cliCnt!==1?'s':'') : '';
+
+  // Botón enviar
+  var btnEnv = document.getElementById('btn-enviar');
+  if(btnEnv) btnEnv.disabled = pendientes.length === 0;
+
+  // PENDIENTES
+  if(pendientes.length){
+    html += '<div class="sec-bar" style="color:#f97316;">POR ENVIAR AL RIDER ('+pendientes.length+')</div>';
+    var pend_invertidos = pendientes.slice().reverse();
+    pend_invertidos.forEach(function(v, k){
+      var i = VIAJES.lastIndexOf(v); // índice real para eliminar
+      var esR = v.accion==='Recoger';
+      var vn = VEH_NMS[v.veh||'moto']||'Moto';
+      var fechaHora = (v.fecha||'') + ' · ' + (v.hora_registro||'');
+      html += '<div class="viaje-card">'+
+        '<div class="viaje-num pend">'+(k+1)+'</div>'+
+        '<div class="viaje-info">'+
+          '<div class="viaje-dest">'+v.dest+(v.hora?' · '+v.hora:'')+'</div>'+
+          '<div class="viaje-accion '+(esR?'r':'l')+'">'+(esR?'Recoger':'Llevar')+' · '+vn+'</div>'+
+          '<div class="viaje-meta">'+fechaHora+' · Pendiente</div>'+
+        '</div>'+
+        '<div class="viaje-del" onclick="eliminar('+i+')">×</div>'+
+      '</div>';
+    });
+  } else {
+    html += '<div style="text-align:center;padding:30px 0;color:#475569;font-size:13px;">Toca Recoger o Llevar para añadir viajes</div>';
+  }
+
+  // ENVIADOS
+  if(enviados.length){
+    html += '<div class="sec-bar" style="color:#10b981;margin-top:8px;border-top:1px solid #1e293b;padding-top:14px;">YA ENVIADOS AL RIDER ('+enviados.length+')</div>';
+    var env_invertidos = enviados.slice().reverse();
+    env_invertidos.forEach(function(v, k){
+      var i = VIAJES.lastIndexOf(v);
+      var esR = v.accion==='Recoger';
+      var vn = VEH_NMS[v.veh||'moto']||'Moto';
+      var fechaHora = (v.fecha||'') + ' · ' + (v.hora_registro||'');
+      html += '<div class="viaje-card enviado">'+
+        '<div class="viaje-num env">'+(k+1)+'</div>'+
+        '<div class="viaje-info">'+
+          '<div class="viaje-dest">'+v.dest+(v.hora?' · '+v.hora:'')+'</div>'+
+          '<div class="viaje-accion '+(esR?'r':'l')+'">'+(esR?'Recoger':'Llevar')+' · '+vn+'</div>'+
+          '<div class="viaje-meta env">'+fechaHora+' · Rider informado'+(v.refEnvio?' · '+v.refEnvio:'')+'</div>'+
+        '</div>'+
+        '<div class="viaje-del" onclick="eliminar('+i+')">×</div>'+
+      '</div>';
+    });
+  }
+
+  cont.innerHTML = html;
+}
+
+// ─── ENVIAR AL RIDER ───────────────────────────────────────────────
+async function enviarARider(){
+  var pendientes = VIAJES.filter(function(v){ return !v.enviado; });
+  if(!pendientes.length){ mostrarToast('No hay viajes por enviar', '#ef4444'); return; }
+  try{
+    // WHATSAPP ANTES DEL AWAIT — unica forma que funciona en movil
+    var refId = 'DSP-' + Date.now();
+    var lavNm = LAV_NMS[LAV] || LAV;
+    var msgWA = 'Nueva ruta LavoBCN'
+      + '\nRef: ' + refId
+      + '\nLavanderia: ' + lavNm
+      + '\nViajes: ' + pendientes.length
+      + '\n' + new Date().toLocaleString('es-ES',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})
+      + '\n' + pendientes.slice(0,5).map(function(p,i){ return (i+1)+'. '+p.dest+' '+p.accion; }).join('\n');
+    // Mostrar botón WhatsApp — el usuario lo toca y llega el mensaje
+    var _waUrl = 'https://wa.me/34661041439?text=' + encodeURIComponent(msgWA);
+    var _waModal = document.createElement('div');
+    _waModal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9999;display:flex;align-items:flex-end;justify-content:center;padding:20px;';
+    _waModal.innerHTML = '<div style="width:100%;max-width:400px;background:#0d1117;border-radius:20px;padding:22px;border:1px solid #1e293b;">'
+      + '<div style="font-size:15px;font-weight:900;color:#fff;margin-bottom:4px;">Ruta enviada al rider ✅</div>'
+      + '<div style="font-size:12px;color:#64748b;margin-bottom:18px;">Ref: ' + refId + ' · ' + pendientes.length + ' viajes</div>'
+      + '<a href="' + _waUrl + '" style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:20px;border-radius:14px;background:#25D366;color:#fff;text-decoration:none;font-size:18px;font-weight:900;margin-bottom:10px;">💬 Enviar WhatsApp</a>'
+      + '<button onclick="document.body.removeChild(this.closest(\'[style*=fixed]\'))" style="width:100%;padding:13px;border-radius:12px;background:#1e293b;color:#94a3b8;border:none;font-size:14px;cursor:pointer;font-family:inherit;">Ahora no</button>'
+      + '</div>';
+    document.body.appendChild(_waModal);
+
+    var pedido = {
+      ref: refId,
+      lavanderia: lavNm,
+      lavId: LAV,
+      paradas: pendientes,
+      total_viajes: pendientes.length,
+      coste_rider: pendientes.length * PRECIO,
+      estado: 'pendiente',
+      ts: Date.now(),
+      dia: new Date().toISOString().slice(0,10)
+    };
+    await fetch(FB + '/despachos/' + refId + '.json', {
+      method: 'PUT',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(pedido)
+    });
+    // Notificar rider
+    fetch('https://lavo-notificador.jeffreelancer31.workers.dev/enviar', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({rol:'rider', title:'Nueva ruta · '+lavNm, body: pendientes.length+' viaje'+(pendientes.length!==1?'s':'')})
+    }).catch(function(){});
+    // Marcar como enviados
+    var ahora = new Date();
+    VIAJES = VIAJES.map(function(v){
+      if(!v.enviado) return Object.assign({}, v, {
+        enviado: true,
+        refEnvio: refId,
+        hora_envio: ahora.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})
+      });
+      return v;
+    });
+    guardar();
+    render();
+
+    // WHATSAPP AUTOMÁTICO — llega sin que el usuario toque nada
+    var msgWA = '🛵 *NUEVA RUTA LAVOBCN*\n'+
+      '📋 Ref: *'+refId+'*\n'+
+      '🏪 Lavandería: '+lavNm+'\n'+
+      '📦 '+pendientes.length+' viaje'+(pendientes.length!==1?'s':'')+' pendientes\n'+
+      '⏰ '+new Date().toLocaleString('es-ES',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+
+      '\n---\n'+
+      pendientes.slice(0,3).map(function(p,i){ return (i+1)+'. '+p.dest+' · '+p.accion; }).join('\n');
+    enviarWhatsAppAdmin(msgWA);
+    mostrarToast('Enviado al rider y WhatsApp notificado', '#10b981');
+  }catch(e){
+    mostrarToast('Error al enviar · revisa la conexion', '#ef4444');
+  }
+}
+
+// ─── UTILS ─────────────────────────────────────────────────────────
+function mostrarToast(msg, color){
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = color||'#1e293b';
+  t.style.color = '#fff';
+  t.style.opacity = '1';
+  setTimeout(function(){ t.style.opacity='0'; }, 3000);
+}
+
+function vibrar(){
+  try{ if(navigator.vibrate) navigator.vibrate(15); }catch(e){}
+}
+
+// ─── FILTRO POR TIPO (regla 5) ──────────────────────────────────────
+function filtrarTipo(tipo){
+  FILTRO_TIPO = tipo;
+  // Resaltar el botón activo
+  var btns = document.querySelectorAll('.filtro-btn');
+  btns.forEach(function(b){
+    var on = b.dataset.tipo === tipo;
+    b.style.background = on ? '#1e293b' : '#0f172a';
+    b.style.color = on ? '#fff' : '#94a3b8';
+  });
+  pintarDestinos();
+}
+
+// ─── INICIO ────────────────────────────────────────────────────────
+selLav('pc');
+// Regla 3: cargar clientes desde Firebase (con respaldo automático)
+cargarClientesFirebase();
+</script>
+
+<!-- AUTOSAVE IND -->
+<div id="autosave-ind" style="position:fixed;top:8px;right:8px;z-index:99999;background:rgba(13,17,23,.9);border:1px solid #1e293b;border-radius:8px;padding:5px 12px;font-size:11px;font-weight:700;color:#475569;pointer-events:none;transition:all .3s;opacity:0;"><span id="autosave-ico">o</span><span id="autosave-txt"> ...</span></div>
+
+<script>
+// AUTO-GUARDADO GLOBAL LavoBCN
+(function(){
+  var _iv = null;
+  var FB_URL = 'https://lavobcn-default-rtdb.europe-west1.firebasedatabase.app/autosave/despacho.json';
+
+  function mostrar(ok, hora){
+    try{
+      var ind = document.getElementById('autosave-ind');
+      var ico = document.getElementById('autosave-ico');
+      var txt = document.getElementById('autosave-txt');
+      if(!ind) return;
+      ind.style.opacity = '1';
+      if(ok){
+        ico.textContent = 'v'; ico.style.color='#10b981';
+        txt.textContent = ' ' + hora; txt.style.color='#10b981';
+        ind.style.borderColor='#10b981';
+        setTimeout(function(){ ind.style.opacity='0'; }, 2500);
+      } else {
+        ico.textContent = 'o'; ico.style.color='#f59e0b';
+        txt.textContent = ' guardando...'; txt.style.color='#f59e0b';
+        ind.style.borderColor='#f59e0b';
+      }
+    }catch(e){}
+  }
+
+  function guardar(){
+    try{
+      mostrar(false);
+      var hora = new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+      var estado = {ts: Date.now(), hora: hora};
+      try{if(typeof LAV!=='undefined')estado.LAV=LAV;}catch(e){} try{if(typeof VEH!=='undefined')estado.VEH=VEH;}catch(e){} try{if(typeof VIAJES!=='undefined')estado.VIAJES=VIAJES;}catch(e){}
+      localStorage.setItem('lavobcn_as_despacho', JSON.stringify(estado));
+      fetch(FB_URL, {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(estado)}).catch(function(){});
+      mostrar(true, hora);
+    }catch(e){}
+  }
+
+  function init(){
+    _iv = setInterval(guardar, 3000);
+    guardar();
+  }
+
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init);
+  else setTimeout(init, 1500);
+})();
+</script>
+</body>
+</html>

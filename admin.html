@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<meta name="theme-color" content="#0d1117">
+<title>LavoBCN — Admin</title>
+<style>
+  :root{--bg:#0d1117;--panel:#161b22;--panel2:#1e2630;--line:#232c39;--tx:#e7edf3;
+    --mut:#7a8694;--green:#10b981;--blue:#3b82f6;--amber:#f59e0b;--red:#ef4444;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;}
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  body{font-family:var(--sans);background:var(--bg);color:var(--tx);min-height:100vh;}
+
+  /* LOGIN */
+  #login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
+  .lbox{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:32px 26px;
+    width:100%;max-width:360px;text-align:center;}
+  .lbox .lg{font-size:42px;margin-bottom:8px;}
+  .lbox h1{font-size:22px;font-weight:900;}.lbox h1 span{color:var(--green);}
+  .lbox .ls{color:var(--mut);font-size:13px;margin:6px 0 22px;}
+  .inp{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:12px;
+    padding:14px;color:var(--tx);font-size:16px;font-family:inherit;margin-bottom:12px;}
+  .btn{width:100%;background:var(--green);color:#062e22;border:none;border-radius:12px;
+    padding:14px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;}
+  .btn:active{transform:scale(.98);}
+  .lerr{color:var(--red);font-size:13px;margin-top:10px;display:none;}
+
+  /* APP */
+  #app{display:none;}
+  .top{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--line);
+    background:var(--panel);position:sticky;top:0;z-index:50;}
+  .top .lg{font-size:18px;font-weight:900;}.top .lg span{color:var(--green);}
+  .top .out{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--mut);
+    background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:7px 12px;cursor:pointer;}
+
+  .tabs{display:flex;gap:8px;padding:14px 18px 0;overflow-x:auto;}
+  .tab{font-family:var(--mono);font-size:13px;color:var(--mut);background:none;border:none;
+    padding:9px 14px;border-radius:100px;cursor:pointer;white-space:nowrap;}
+  .tab.on{background:var(--green);color:#062e22;font-weight:700;}
+
+  .wrap{padding:18px;}
+  .stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:18px;}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;}
+  .stat .n{font-size:26px;font-weight:900;}
+  .stat .l{font-size:11px;color:var(--mut);font-family:var(--mono);margin-top:2px;text-transform:uppercase;letter-spacing:.5px;}
+
+  .sec-t{font-size:13px;font-family:var(--mono);color:var(--mut);text-transform:uppercase;
+    letter-spacing:1px;margin:8px 0 12px;}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:10px;}
+  .card .h{display:flex;align-items:center;gap:8px;}
+  .card .ref{font-family:var(--mono);font-size:12px;color:var(--green);}
+  .card .nm{font-size:15px;font-weight:700;margin-top:4px;}
+  .card .meta{font-size:13px;color:var(--mut);margin-top:4px;line-height:1.5;}
+  .badge{font-size:10px;font-family:var(--mono);font-weight:700;padding:3px 9px;border-radius:100px;
+    text-transform:uppercase;margin-left:auto;}
+  .b-pendiente{background:rgba(245,158,11,.15);color:#fbbf24;}
+  .b-camino{background:rgba(59,130,246,.15);color:#7eb3ff;}
+  .b-entregado{background:rgba(16,185,129,.15);color:#34d99f;}
+  .sel{margin-top:10px;width:100%;background:var(--panel2);color:var(--tx);border:1px solid var(--line);
+    border-radius:8px;padding:8px;font-family:var(--mono);font-size:12px;}
+  .empty{text-align:center;padding:40px 20px;color:var(--mut);}
+  .empty .e{font-size:36px;margin-bottom:10px;}
+  .rider{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);
+    border-radius:14px;padding:13px 16px;margin-bottom:9px;}
+  .rider .rico{font-size:24px;}
+  .rider .rn{font-size:15px;font-weight:700;}
+  .rider .rc{font-family:var(--mono);font-size:12px;color:var(--mut);margin-top:2px;}
+  .rider .rst{margin-left:auto;font-size:11px;font-family:var(--mono);padding:3px 9px;border-radius:100px;
+    background:rgba(16,185,129,.15);color:#34d99f;}
+  .notif{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;}
+  .notif textarea{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:12px;
+    padding:12px;color:var(--tx);font-size:15px;font-family:inherit;margin-bottom:10px;resize:vertical;min-height:70px;}
+  .reload{font-family:var(--mono);font-size:12px;color:var(--blue);background:none;border:none;cursor:pointer;margin-bottom:14px;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login">
+  <div class="lbox">
+    <div class="lg">🛵</div>
+    <h1>Lavo<span>BCN</span> Admin</h1>
+    <div class="ls">Acceso solo para administración</div>
+    <input class="inp" id="pwd" type="password" placeholder="Contraseña" autocomplete="off">
+    <button class="btn" id="lbtn">Entrar →</button>
+    <div class="lerr" id="lerr">Contraseña incorrecta.</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="top">
+    <div class="lg">Lavo<span>BCN</span> · Admin</div>
+    <button class="out" onclick="salir()">Salir</button>
+  </div>
+  <div class="tabs">
+    <button class="tab on" data-t="panel" onclick="tab('panel')">📊 Panel</button>
+    <button class="tab" data-t="lavs" onclick="tab('lavs')">🏪 Lavanderías</button>
+    <button class="tab" data-t="viajes" onclick="tab('viajes')">🛵 Viajes</button>
+    <button class="tab" data-t="kpis" onclick="tab('kpis')">📈 KPIs</button>
+    <button class="tab" data-t="riders" onclick="tab('riders')">👥 Riders</button>
+    <button class="tab" data-t="notif" onclick="tab('notif')">🔔 Notificar</button>
+    <button class="tab" data-t="soporte" onclick="tab('soporte')">💬 Soporte</button>
+    <button class="tab" data-t="recuperar" onclick="tab('recuperar')">🔍 Recuperar</button>
+  </div>
+
+  <div class="wrap" id="v-panel">
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;">
+      <button class="reload" onclick="cargarPedidos()" style="margin:0;flex:1;">↻ Actualizar pedidos</button>
+      <div onclick="toggleSaldosAdmin()" id="ojo-saldos-admin" style="font-size:20px;cursor:pointer;">👁️</div>
+    </div>
+    <div class="stats" id="stats"></div>
+    <div class="sec-t">Pedidos</div>
+    <div id="pedidos"><div class="empty"><div class="e">⏳</div>Cargando…</div></div>
+  </div>
+
+  <!-- PANEL VIAJES -->
+  <!-- PANEL KPIs -->
+  <div class="wrap" id="v-kpis" style="display:none;">
+
+    <div class="sec-t">📈 Métricas del negocio</div>
+    <div style="font-size:11px;color:var(--mut);margin-bottom:14px;">Barcelona · Sant Martí · Actualizado automáticamente desde Firebase</div>
+
+    <!-- MÉTRICAS AUTO — calculadas desde Firebase -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;">
+      <div class="card" style="text-align:center;padding:14px;">
+        <div style="font-size:28px;font-weight:900;color:var(--green);" id="kpi-pedidos-mes">—</div>
+        <div style="font-size:11px;color:var(--mut);margin-top:4px;">Pedidos este mes</div>
+      </div>
+      <div class="card" style="text-align:center;padding:14px;">
+        <div style="font-size:28px;font-weight:900;color:var(--green);" id="kpi-ticket-medio">—</div>
+        <div style="font-size:11px;color:var(--mut);margin-top:4px;">Ticket medio (€)</div>
+      </div>
+      <div class="card" style="text-align:center;padding:14px;">
+        <div style="font-size:28px;font-weight:900;color:#60a5fa;" id="kpi-clientes-total">—</div>
+        <div style="font-size:11px;color:var(--mut);margin-top:4px;">Clientes únicos</div>
+      </div>
+      <div class="card" style="text-align:center;padding:14px;">
+        <div style="font-size:28px;font-weight:900;color:#a78bfa;" id="kpi-repiten">—</div>
+        <div style="font-size:11px;color:var(--mut);margin-top:4px;">Clientes que repiten</div>
+      </div>
+      <div class="card" style="text-align:center;padding:14px;">
+        <div style="font-size:28px;font-weight:900;color:#f59e0b;" id="kpi-comision">—</div>
+        <div style="font-size:11px;color:var(--mut);margin-top:4px;">Comisión plataforma (€)</div>
+      </div>
+      <div class="card" style="text-align:center;padding:14px;">
+        <div style="font-size:28px;font-weight:900;color:#10b981;" id="kpi-ingresos">—</div>
+        <div style="font-size:11px;color:var(--mut);margin-top:4px;">Ingresos brutos (€)</div>
+      </div>
+    </div>
+
+    <!-- MÉTRICAS MANUALES — el admin las configura -->
+    <div class="sec-t">⚙️ Parámetros del negocio</div>
+    <div style="font-size:11px;color:var(--mut);margin-bottom:12px;">Edita y guarda. Se aplican a todos los cálculos.</div>
+
+    <div id="kpi-params-form">
+      <div class="card" style="margin-bottom:10px;">
+        <div style="font-size:12px;font-weight:700;color:var(--tx);margin-bottom:8px;">💰 Comisión plataforma (%)</div>
+        <input id="kp-comision" type="number" min="0" max="100" step="0.5" placeholder="15"
+          style="width:100%;padding:10px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--tx);font-size:15px;font-family:inherit;outline:none;">
+        <div style="font-size:10px;color:var(--mut);margin-top:5px;">Ejemplo: 15 = cobras el 15% de cada pedido</div>
+      </div>
+      <div class="card" style="margin-bottom:10px;">
+        <div style="font-size:12px;font-weight:700;color:var(--tx);margin-bottom:8px;">🎯 Coste adquisición cliente (CAC) (€)</div>
+        <input id="kp-cac" type="number" min="0" step="0.5" placeholder="0"
+          style="width:100%;padding:10px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--tx);font-size:15px;font-family:inherit;outline:none;">
+        <div style="font-size:10px;color:var(--mut);margin-top:5px;">Cuánto gastas en conseguir cada cliente nuevo (publicidad, flyers, etc.)</div>
+      </div>
+      <div class="card" style="margin-bottom:10px;">
+        <div style="font-size:12px;font-weight:700;color:var(--tx);margin-bottom:8px;">🏙️ Ciudad operativa</div>
+        <input id="kp-ciudad" type="text" placeholder="Barcelona · Sant Martí"
+          style="width:100%;padding:10px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--tx);font-size:15px;font-family:inherit;outline:none;">
+      </div>
+      <div class="card" style="margin-bottom:10px;">
+        <div style="font-size:12px;font-weight:700;color:var(--tx);margin-bottom:8px;">📝 Notas del mes</div>
+        <textarea id="kp-notas" rows="3" placeholder="Ej: Empezamos con Perfect Clean el 2 julio. Primer mes de operación."
+          style="width:100%;padding:10px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--tx);font-size:13px;font-family:inherit;outline:none;resize:vertical;"></textarea>
+      </div>
+      <button onclick="guardarKpiParams()" style="width:100%;padding:13px;border-radius:12px;background:var(--green);color:#04241a;border:none;font-size:14px;font-weight:900;cursor:pointer;font-family:inherit;margin-bottom:20px;">💾 Guardar parámetros</button>
+    </div>
+
+    <!-- CAC CALCULADO -->
+    <div id="kpi-cac-card" class="card" style="display:none;margin-bottom:20px;">
+      <div class="sec-t" style="margin-top:0;">🎯 Análisis de adquisición</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div style="font-size:13px;color:var(--mut);">CAC configurado</div>
+        <div style="font-size:15px;font-weight:900;color:var(--tx);" id="kpi-cac-valor">—€</div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div style="font-size:13px;color:var(--mut);">Clientes nuevos este mes</div>
+        <div style="font-size:15px;font-weight:900;color:var(--tx);" id="kpi-nuevos">—</div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px solid var(--line);">
+        <div style="font-size:13px;color:var(--mut);">Inversión en adquisición</div>
+        <div style="font-size:15px;font-weight:900;color:#f59e0b;" id="kpi-inversion-total">—€</div>
+      </div>
+    </div>
+
+    <button class="reload" onclick="cargarKpis()" style="display:block;width:100%;margin-bottom:14px;">↻ Recalcular</button>
+  </div>
+
+  <!-- PANEL RECUPERAR DATOS -->
+  <div class="wrap" id="v-recuperar" style="display:none;">
+    <div class="sec-t">🔍 Recuperar datos de Firebase</div>
+    <div style="font-size:11px;color:var(--mut);margin-bottom:14px;">Busca todos los viajes y pedidos guardados, incluyendo días anteriores.</div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+      <button class="reload" onclick="recuperarTodo()" style="background:#0a2218;border-color:#10b981;color:#10b981;">🔍 Todo</button>
+      <button class="reload" onclick="recuperarAyer()" style="background:#1a1200;border-color:#f97316;color:#f97316;">📅 Ayer</button>
+      <button class="reload" onclick="recuperarHoy()" style="background:#0a1a2a;border-color:#38bdf8;color:#38bdf8;">📅 Hoy</button>
+      <button class="reload" onclick="recuperarAutosave()" style="background:#140a2a;border-color:#a78bfa;color:#a78bfa;">💾 Autosave</button>
+    </div>
+
+    <div id="rec-total" style="display:none;background:#0a2218;border:1px solid #10b981;border-radius:12px;padding:14px;margin-bottom:12px;">
+      <div style="font-size:28px;font-weight:900;color:#10b981;" id="rec-total-euros">—</div>
+      <div style="font-size:12px;color:#64748b;margin-top:4px;" id="rec-total-info">—</div>
+    </div>
+
+    <div id="rec-log" style="font-size:11px;color:var(--mut);text-align:center;padding:8px;">Toca un botón para buscar</div>
+    <div id="rec-lista"></div>
+  </div>
+
+  <div class="wrap" id="v-lavs" style="display:none;">
+    <div style="display:flex;gap:8px;margin-bottom:16px;">
+      <div class="tab on" id="lavtab-pc" data-lav="pc" onclick="selTabLav('pc')" style="flex:1;text-align:center;border-radius:10px;padding:11px;cursor:pointer;">🏪 Perfect Clean</div>
+      <div class="tab" id="lavtab-prim" data-lav="prim" onclick="selTabLav('prim')" style="flex:1;text-align:center;border-radius:10px;padding:11px;cursor:pointer;">🏪 Tintorería Prim</div>
+    </div>
+    <button class="reload" onclick="cargarPedidosLavanderia()" style="margin-bottom:14px;display:block;">↻ Actualizar</button>
+    <div class="sec-t">Pedidos pendientes · sin enviar todavía</div>
+    <div id="lista-pedidos-lav"><div class="empty"><div class="e">📋</div>Cargando…</div></div>
+  </div>
+
+  <div class="wrap" id="v-viajes" style="display:none;">
+    <button class="reload" onclick="cargarViajes()" style="margin-bottom:14px;display:block;">↻ Actualizar</button>
+    <!-- Selector período -->
+    <div style="display:flex;gap:6px;margin-bottom:16px;">
+      <div class="tab" data-p="dia" onclick="selPeriodo(this,'dia')" style="flex:1;text-align:center;border-radius:10px;padding:9px;cursor:pointer;">Hoy</div>
+      <div class="tab" data-p="semana" onclick="selPeriodo(this,'semana')" style="flex:1;text-align:center;border-radius:10px;padding:9px;cursor:pointer;">Semana</div>
+      <div class="tab on" data-p="mes" onclick="selPeriodo(this,'mes')" style="flex:1;text-align:center;border-radius:10px;padding:9px;cursor:pointer;">Este mes</div>
+      <div class="tab" data-p="todo" onclick="selPeriodo(this,'todo')" style="flex:1;text-align:center;border-radius:10px;padding:9px;cursor:pointer;">Todo</div>
+    </div>
+    <!-- Stats viajes -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;" id="viajes-stats">
+      <div class="stat"><div class="num" id="v-total-viajes" style="color:#10b981;">0</div><div class="lab">Viajes</div></div>
+      <div class="stat"><div class="num" id="v-total-coste" style="color:#38bdf8;">0€</div><div class="lab">Logística</div></div>
+      <div class="stat"><div class="num" id="v-total-desp" style="color:#f59e0b;">0</div><div class="lab">Despachos</div></div>
+      <div class="stat"><div class="num" id="v-avg-viaje" style="color:#a855f7;">0</div><div class="lab">Viajes/despacho</div></div>
+    </div>
+    <!-- ASIGNAR VIAJE DIRECTO A UN RIDER -->
+    <div class="sec-t">📲 Asignar viaje a rider</div>
+    <div style="background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:18px;">
+      <select id="av-lav" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--tx);font-size:13px;font-family:inherit;outline:none;margin-bottom:8px;">
+        <option value="Perfect Clean">Perfect Clean</option>
+        <option value="Tintorería Prim">Tintorería Prim</option>
+      </select>
+      <input id="av-destino" type="text" placeholder="Destino / dirección de entrega" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--tx);font-size:13px;font-family:inherit;outline:none;margin-bottom:8px;">
+      <input id="av-precio" type="number" placeholder="Precio (€)" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--tx);font-size:13px;font-family:inherit;outline:none;margin-bottom:8px;">
+      <select id="av-rider" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--tx);font-size:13px;font-family:inherit;outline:none;margin-bottom:10px;"></select>
+      <button onclick="asignarViajeDirecto()" style="width:100%;padding:12px;border-radius:10px;background:var(--green);color:#04241a;border:none;font-size:14px;font-weight:800;cursor:pointer;">📲 Asignar viaje</button>
+    </div>
+    <!-- Lista despachos -->
+    <div class="sec-t">Despachos</div>
+    <div id="viajes-lista"><div class="empty"><div class="e">📦</div>Cargando…</div></div>
+  </div>
+
+  <div class="wrap" id="v-riders" style="display:none;">
+    <div class="sec-t">Riders del sistema</div>
+    <div id="riders"></div>
+  </div>
+
+  <div class="wrap" id="v-notif" style="display:none;">
+    <div class="sec-t">Enviar aviso</div>
+    <div class="notif">
+      <select class="sel" id="nt-dest" onchange="destChange()" style="margin-top:0;margin-bottom:10px;">
+        <option value="rider">🛵 A todos los riders</option>
+        <option value="cliente">📱 A todos los clientes</option>
+        <option value="cliente-uno">👤 A un cliente (por teléfono)</option>
+      </select>
+      <input class="inp" id="nt-id" placeholder="Teléfono del cliente (ej: 661041439)" style="display:none;">
+      <input class="inp" id="nt-title" placeholder="Título (ej: Nuevo pedido 📦)">
+      <textarea id="nt-body" placeholder="Mensaje (ej: Lavandería en Sant Martí · acéptalo)"></textarea>
+      <button class="btn" onclick="notificar()">Enviar aviso</button>
+      <div id="nt-res" style="font-family:var(--mono);font-size:12px;color:var(--mut);margin-top:12px;text-align:center;"></div>
+
+      <div style="margin-top:24px;padding-top:18px;border-top:1px solid var(--line);">
+        <div style="font-size:12px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">🧪 Prueba de velocidad</div>
+        <div style="font-size:12px;color:var(--mut);margin-bottom:10px;">Manda 5 avisos reales, uno cada 20 segundos, a TODOS los riders. Sirve para confirmar que llegan rápido y seguido de verdad.</div>
+        <button class="btn" id="btn-prueba-20s" onclick="iniciarPrueba20s()" style="background:#7c3aed;">Iniciar prueba (5 avisos · 20s)</button>
+        <div id="prueba-20s-log" style="font-family:var(--mono);font-size:12px;color:var(--mut);margin-top:12px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANEL SOPORTE -->
+  <div class="wrap" id="v-soporte" style="display:none;">
+    <div class="sec-t">📡 Actividad de riders en vivo</div>
+    <button class="reload" onclick="cargarEventosRider()" style="margin-bottom:14px;display:block;">↻ Actualizar</button>
+    <div id="lista-eventos-rider" style="margin-bottom:24px;"></div>
+
+    <div class="sec-t">💬 Conversaciones de soporte</div>
+    <button class="reload" onclick="cargarConversaciones()" style="margin-bottom:14px;display:block;">↻ Actualizar</button>
+    <div id="sop-lista-conv"></div>
+    <!-- DETALLE DE UNA CONVERSACIÓN -->
+    <div id="sop-detalle" style="display:none;margin-top:16px;">
+      <button onclick="cerrarDetalleSoporte()" style="background:none;border:none;color:var(--mut);font-size:13px;cursor:pointer;margin-bottom:10px;">‹ Volver a la lista</button>
+      <div id="sop-feed-admin" style="display:flex;flex-direction:column;gap:9px;max-height:50vh;overflow-y:auto;padding:10px;background:rgba(255,255,255,.03);border-radius:12px;margin-bottom:12px;"></div>
+      <div style="display:flex;gap:8px;">
+        <input class="inp" id="sop-admin-inp" placeholder="Escribe tu respuesta..." style="margin:0;flex:1;" onkeyup="if(event.key==='Enter')responderSoporte()">
+        <button class="btn" onclick="responderSoporte()" style="width:auto;padding:0 16px;margin:0;">Enviar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function fechaLocalStr(fecha){
+  var d = fecha || new Date();
+  var y = d.getFullYear();
+  var m = String(d.getMonth()+1).padStart(2,'0');
+  var dia = String(d.getDate()).padStart(2,'0');
+  return y+'-'+m+'-'+dia;
+}
+
+var FIREBASE = "https://lavobcn-default-rtdb.europe-west1.firebasedatabase.app";
+var EMISOR = "https://lavo-notificador.jeffreelancer31.workers.dev";
+var PWD_HASH = "6b2badde6d1903749ec0ca0982856d0bb954efce9179609e194aa19787503650";
+var RIDERS = [
+  {n:"Jeffrey", v:"🛵", c:"lavo00001"},
+  {n:"Rider 2", v:"🚗", c:"lavo00002"},
+  {n:"Rider 3", v:"🚲", c:"lavo00003"},
+  {n:"Rider 4", v:"🛴", c:"lavo00004"},
+  {n:"Rider 5", v:"🛵", c:"lavo00005"},
+  {n:"Rider 6", v:"🚗", c:"lavo00006"},
+  {n:"Rider 7", v:"🚲", c:"lavo00007"},
+  {n:"Rider 8", v:"🛴", c:"lavo00008"},
+  {n:"Rider 9", v:"🛵", c:"lavo00009"},
+  {n:"Rider 10", v:"🚗", c:"lavo00010"},
+  {n:"Rider 11", v:"🚲", c:"lavo00011"},
+  {n:"Rider 12", v:"🛴", c:"lavo00012"},
+  {n:"Rider 13", v:"🛵", c:"lavo00013"},
+  {n:"Rider 14", v:"🚗", c:"lavo00014"},
+  {n:"Rider 15", v:"🚲", c:"lavo00015"},
+  {n:"Rider 16", v:"🛴", c:"lavo00016"},
+  {n:"Rider 17", v:"🛵", c:"lavo00017"},
+  {n:"Rider 18", v:"🚗", c:"lavo00018"},
+  {n:"Rider 19", v:"🚲", c:"lavo00019"},
+  {n:"Rider 20", v:"🛴", c:"lavo00020"}
+];
+
+function $(i){return document.getElementById(i);}
+
+// ── LOGIN (contraseña cifrada, no visible en el código) ──
+async function sha256(txt){
+  var buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(txt));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+$('lbtn').addEventListener('click', entrar);
+$('pwd').addEventListener('keyup', function(e){ if(e.key==='Enter') entrar(); });
+async function entrar(){
+  var h = await sha256($('pwd').value);
+  if(h === PWD_HASH){
+    $('login').style.display='none';
+    $('app').style.display='block';
+    try{ localStorage.setItem('lavobcn_admin_sesion', '1'); }catch(e){}
+    cargarPedidos();
+    pintarRiders();
+  } else {
+    $('lerr').style.display='block';
+  }
+}
+function salir(){ try{localStorage.removeItem('lavobcn_admin_sesion');}catch(e){} window.location.href='index.html'; }
+
+function intentarSesionGuardadaAdmin(){
+  try{
+    if(localStorage.getItem('lavobcn_admin_sesion')!=='1') return false;
+    $('login').style.display='none';
+    $('app').style.display='block';
+    cargarPedidos();
+    pintarRiders();
+    return true;
+  }catch(e){ return false; }
+}
+intentarSesionGuardadaAdmin();
+
+// ── TABS ──
+function tab(t){
+  ['panel','lavs','viajes','riders','notif','soporte','kpis','recuperar'].forEach(function(x){
+    var el=document.getElementById('v-'+x); if(el) el.style.display=(x===t)?'block':'none';
+  });
+  document.querySelectorAll('.tab[data-t]').forEach(function(b){ b.classList.toggle('on', b.dataset.t===t); });
+  if(t==='lavs'){ cargarPedidosLavanderia(); }
+  if(t==='viajes'){ pintarSelectorRidersAsignar(); cargarViajes(); }
+  if(t==='soporte'){ cargarConversaciones(); cargarEventosRider(); }
+  if(t==='kpis'){ cargarKpis(); cargarKpiParams(); }
+  if(t==='recuperar'){ /* el usuario toca los botones */ }
+}
+
+// ── SISTEMA DE RECUPERACIÓN DE DATOS ─────────────────────────────
+function recLog(msg){ var el=document.getElementById('rec-log'); if(el) el.textContent=msg; }
+function recFecha(ts){ if(!ts) return '—'; var d=new Date(ts); return d.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'2-digit'})+' '+d.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}); }
+
+async function recuperarDatos(filtroFecha){
+  recLog('Buscando en Firebase...');
+  document.getElementById('rec-lista').innerHTML='';
+  document.getElementById('rec-total').style.display='none';
+  try{
+    var [rDesp, rPeds] = await Promise.all([
+      fetch(FIREBASE+'/despachos.json').then(function(r){return r.json();}),
+      fetch(FIREBASE+'/pedidos.json').then(function(r){return r.json();})
+    ]);
+
+    var items=[];
+    var totalEuros=0;
+
+    if(rDesp) Object.values(rDesp).forEach(function(d){
+      if(!d||!d.ref) return;
+      var fecha = d.ts ? new Date(d.ts).toISOString().slice(0,10) : '';
+      if(filtroFecha && fecha!==filtroFecha) return;
+      items.push({tipo:'Despacho',ref:d.ref,lav:d.lavanderia||'—',estado:d.estado||'—',ts:d.ts||0,euros:d.coste_rider||0,rider:d.rider||'—',paradas:(d.paradas||[]).length});
+      totalEuros += d.coste_rider||0;
+    });
+    if(rPeds) Object.values(rPeds).forEach(function(p){
+      if(!p||!p.ref) return;
+      var fecha = p.ts ? new Date(p.ts).toISOString().slice(0,10) : '';
+      if(filtroFecha && fecha!==filtroFecha) return;
+      var imp=parseFloat((p.total||'0').toString().replace(/[^0-9.]/g,''))||0;
+      items.push({tipo:'Pedido',ref:p.ref,lav:p.lavanderia||p.local||'—',estado:p.estado||'—',ts:p.ts||0,euros:imp,rider:p.rider||'—',paradas:0});
+      totalEuros += imp;
+    });
+
+    items.sort(function(a,b){return b.ts-a.ts;});
+    recLog(items.length+' registros encontrados'+(filtroFecha?' ('+filtroFecha+')':''));
+
+    if(items.length){
+      document.getElementById('rec-total').style.display='block';
+      document.getElementById('rec-total-euros').textContent=totalEuros.toFixed(2)+'€';
+      document.getElementById('rec-total-info').textContent=items.length+' registros'+(filtroFecha?' · '+filtroFecha:' · Historial completo');
+    }
+
+    var EST_COL={entregado:'#10b981',aceptado:'#10b981',cancelado:'#ef4444',pendiente:'#f59e0b',completado:'#10b981'};
+    document.getElementById('rec-lista').innerHTML = items.map(function(d){
+      var col=EST_COL[d.estado]||'#64748b';
+      return '<div class="card" style="border-color:'+col+';margin-bottom:8px;">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'+
+          '<span style="font-size:12px;font-weight:900;color:'+col+';font-family:monospace;">'+d.ref+'</span>'+
+          '<span style="font-size:10px;font-weight:700;color:'+col+';">'+d.estado+'</span>'+
+        '</div>'+
+        '<div style="font-size:12px;color:var(--tx);">'+d.lav+(d.rider&&d.rider!=='—'?' · 🛵 '+d.rider:'')+'</div>'+
+        '<div style="font-size:11px;color:var(--mut);margin-top:3px;">'+recFecha(d.ts)+(d.paradas?' · '+d.paradas+' paradas':'')+'</div>'+
+        (d.euros?'<div style="font-size:15px;font-weight:900;color:#10b981;margin-top:5px;">'+d.euros.toFixed(2)+'€</div>':'')+
+      '</div>';
+    }).join('')||'<div style="color:var(--mut);text-align:center;padding:20px;">Sin datos para este período</div>';
+  }catch(e){ recLog('Error: '+e.message); }
+}
+
+function recuperarTodo()  { recuperarDatos(null); }
+function recuperarHoy()   { recuperarDatos(new Date().toISOString().slice(0,10)); }
+function recuperarAyer()  { var a=new Date(); a.setDate(a.getDate()-1); recuperarDatos(a.toISOString().slice(0,10)); }
+async function recuperarAutosave(){
+  recLog('Leyendo autosave...');
+  document.getElementById('rec-lista').innerHTML='';
+  try{
+    var [r1,r2,r3] = await Promise.all([
+      fetch(FIREBASE+'/autosave/rider.json').then(function(r){return r.json();}),
+      fetch(FIREBASE+'/autosave/despacho.json').then(function(r){return r.json();}),
+      fetch(FIREBASE+'/autosave/cliente.json').then(function(r){return r.json();})
+    ]);
+    recLog('Autosave leído');
+    var html='';
+    [['Rider',r1],['Despacho',r2],['Cliente',r3]].forEach(function(x){
+      var nm=x[0], d=x[1];
+      if(!d){html+='<div class="card"><div style="font-size:12px;color:var(--mut);">Autosave '+nm+': vacío</div></div>'; return;}
+      html+='<div class="card" style="margin-bottom:8px;">'+
+        '<div style="font-size:12px;font-weight:800;color:#a78bfa;margin-bottom:6px;">💾 Autosave '+nm+'</div>'+
+        '<div style="font-size:11px;color:var(--mut);">Guardado: '+recFecha(d.ts)+'</div>'+
+        (d.viajes!==undefined?'<div style="font-size:14px;font-weight:700;color:#10b981;margin-top:4px;">'+d.viajes+' viajes</div>':'')+
+        (d.euros!==undefined?'<div style="font-size:14px;font-weight:700;color:#10b981;">'+d.euros+'€</div>':'')+
+        (d.VIAJES?'<div style="font-size:12px;color:#f97316;margin-top:4px;">Lista: '+d.VIAJES.length+' viajes en borrador</div>':'')+
+        (d.lav?'<div style="font-size:11px;color:var(--mut);">Lavandería: '+d.lav+'</div>':'')+
+      '</div>';
+    });
+    document.getElementById('rec-lista').innerHTML=html;
+  }catch(e){ recLog('Error: '+e.message); }
+}
+
+// ── KPIs ──────────────────────────────────────────────────────────
+var CLAVE_KPI_PARAMS = 'lavobcn_kpi_params';
+
+function cargarKpiParams(){
+  try{
+    var p = JSON.parse(localStorage.getItem(CLAVE_KPI_PARAMS)||'{}');
+    if(p.comision) document.getElementById('kp-comision').value = p.comision;
+    if(p.cac) document.getElementById('kp-cac').value = p.cac;
+    if(p.ciudad) document.getElementById('kp-ciudad').value = p.ciudad;
+    else document.getElementById('kp-ciudad').value = 'Barcelona · Sant Martí';
+    if(p.notas) document.getElementById('kp-notas').value = p.notas;
+  }catch(e){}
+}
+
+function guardarKpiParams(){
+  try{
+    var p = {
+      comision: parseFloat(document.getElementById('kp-comision').value)||15,
+      cac: parseFloat(document.getElementById('kp-cac').value)||0,
+      ciudad: document.getElementById('kp-ciudad').value||'Barcelona · Sant Martí',
+      notas: document.getElementById('kp-notas').value||''
+    };
+    localStorage.setItem(CLAVE_KPI_PARAMS, JSON.stringify(p));
+    // Guardar también en Firebase para persistencia entre dispositivos
+    fetch(FIREBASE+'/kpi_params.json', {
+      method:'PUT', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(Object.assign({}, p, {ts: Date.now()}))
+    }).catch(function(){});
+    showToast('✅ Parámetros guardados');
+    cargarKpis();
+  }catch(e){ console.warn('[guardarKpiParams]', e); }
+}
+
+async function cargarKpis(){
+  try{
+    var params = JSON.parse(localStorage.getItem(CLAVE_KPI_PARAMS)||'{}');
+    var comisionPct = params.comision || 15;
+    var cac = params.cac || 0;
+
+    var ahora = new Date();
+    var inicioMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1).getTime();
+
+    // Leer todos los pedidos y despachos del mes
+    var r1 = await fetch(FIREBASE+'/pedidos.json');
+    var pedidos = await r1.json() || {};
+    var r2 = await fetch(FIREBASE+'/despachos.json');
+    var despachos = await r2.json() || {};
+
+    var todosPedidos = Object.values(pedidos).filter(function(p){ return p && p.ts >= inicioMes; });
+    var todosDespachos = Object.values(despachos).filter(function(d){ return d && d.ts >= inicioMes && !d.esBorrador; });
+
+    var totalPedidos = todosPedidos.length + todosDespachos.length;
+
+    // Ticket medio — extraer el valor numérico de total
+    var importes = [];
+    todosPedidos.forEach(function(p){
+      var v = parseFloat((p.total||'').toString().replace(/[^0-9.]/g,''));
+      if(v > 0) importes.push(v);
+    });
+    todosDespachos.forEach(function(d){
+      if(d.coste_rider > 0) importes.push(d.coste_rider);
+    });
+    var ticketMedio = importes.length ? (importes.reduce(function(a,b){return a+b;},0)/importes.length).toFixed(2) : 0;
+    var ingresosBrutos = importes.reduce(function(a,b){return a+b;},0).toFixed(2);
+    var comisionEuros = (parseFloat(ingresosBrutos) * comisionPct / 100).toFixed(2);
+
+    // Clientes únicos — por teléfono
+    var telefonos = {};
+    todosPedidos.forEach(function(p){ if(p.tel) telefonos[p.tel] = (telefonos[p.tel]||0)+1; });
+    var clientesUnicos = Object.keys(telefonos).length;
+    var clientesRepiten = Object.values(telefonos).filter(function(n){ return n > 1; }).length;
+    var clientesNuevos = clientesUnicos - clientesRepiten;
+
+    // Actualizar UI
+    document.getElementById('kpi-pedidos-mes').textContent = totalPedidos;
+    document.getElementById('kpi-ticket-medio').textContent = ticketMedio+'€';
+    document.getElementById('kpi-clientes-total').textContent = clientesUnicos;
+    document.getElementById('kpi-repiten').textContent = clientesRepiten;
+    document.getElementById('kpi-comision').textContent = comisionEuros+'€';
+    document.getElementById('kpi-ingresos').textContent = ingresosBrutos+'€';
+
+    // CAC
+    if(cac > 0){
+      var cacCard = document.getElementById('kpi-cac-card');
+      if(cacCard){
+        cacCard.style.display = 'block';
+        document.getElementById('kpi-cac-valor').textContent = cac+'€';
+        document.getElementById('kpi-nuevos').textContent = clientesNuevos;
+        document.getElementById('kpi-inversion-total').textContent = (cac * clientesNuevos).toFixed(2)+'€';
+      }
+    }
+  }catch(e){ console.warn('[cargarKpis]', e); }
+}
+
+// ── PEDIDOS POR LAVANDERÍA (Perfect Clean / Tintorería Prim) ──
+var tabLavSel = 'pc';
+function selTabLav(id){
+  tabLavSel = id;
+  document.getElementById('lavtab-pc').classList.toggle('on', id==='pc');
+  document.getElementById('lavtab-prim').classList.toggle('on', id==='prim');
+  cargarPedidosLavanderia();
+}
+
+var VEH_ICO_ADMIN = {moto:'🛵', auto:'🚗', patin:'🛴'};
+var VEH_NOM_ADMIN = {moto:'Moto', auto:'Auto', patin:'Patín'};
+var VEH_PRECIO_ADMIN = {moto:4, auto:4, patin:4};
+
+function precioViajeAdmin(vehiculo, servicio){
+  var base = VEH_PRECIO_ADMIN[vehiculo] || VEH_PRECIO_ADMIN.moto;
+  return base * (servicio==='exp' ? 1.5 : 1);
+}
+
+async function cargarPedidosLavanderia(){
+  var cont = document.getElementById('lista-pedidos-lav');
+  cont.innerHTML = '<div class="empty"><div class="e">⏳</div>Cargando…</div>';
+  var nombreLav = tabLavSel==='pc' ? 'Perfect Clean' : 'Tintorería Prim';
+
+  var viajesEnCurso = [];
+  var viajesNoEnCurso = [];
+  try{
+    // 1) Pedidos individuales (moto, mensajería, amazon, lavado suelto) — cada uno es 1 viaje
+    var r1 = await fetch(FIREBASE+'/pedidos.json');
+    var data1 = await r1.json() || {};
+    Object.entries(data1).forEach(function(e){
+      var p = e[1];
+      if(!p || (p.local!==nombreLav && p.lavanderia!==nombreLav)) return;
+      if(p.estado!=='pendiente' && p.estado!=='aceptado' && p.estado!=='en_camino') return;
+      var fila = {
+        esParada:false, tipo:'pedido', ref: p.ref||e[0], paradaIndex:-1,
+        dest: p.cliente||p.dir||'Pedido', vehiculo: p.tipo==='moto'?'moto':'moto',
+        monto: p.total || '', estado: p.estado, ts: p.ts||0
+      };
+      (fila.estado==='pendiente' ? viajesNoEnCurso : viajesEnCurso).push(fila);
+    });
+    // 2) Despachos — cada PARADA dentro es su propio viaje numerado
+    var r2 = await fetch(FIREBASE+'/despachos.json');
+    var data2 = await r2.json() || {};
+    Object.entries(data2).forEach(function(e){
+      var d = e[1];
+      if(!d || d.lavanderia!==nombreLav) return;
+      if(d.estado!=='pendiente' && d.estado!=='aceptado' && d.estado!=='en_camino') return;
+      (d.paradas||[]).forEach(function(parada, i){
+        var fila = {
+          esParada:true, tipo:'despacho', ref: d.ref||e[0], paradaIndex:i,
+          dest: parada.dest+' · '+parada.accion, vehiculo: parada.vehiculo||'moto',
+          monto: precioViajeAdmin(parada.vehiculo, d.servicio).toFixed(2)+'€', estado: d.estado, ts: d.ts||0
+        };
+        (fila.estado==='pendiente' ? viajesNoEnCurso : viajesEnCurso).push(fila);
+      });
+    });
+  }catch(e){ cont.innerHTML = '<div class="empty"><div class="e">⚠️</div>No se pudo conectar con la base de datos.</div>'; return; }
+
+  viajesEnCurso.sort(function(a,b){ return b.ts-a.ts; });
+  viajesNoEnCurso.sort(function(a,b){ return b.ts-a.ts; });
+
+  function renderFila(it, num){
+    var vIco = VEH_ICO_ADMIN[it.vehiculo] || '🛵';
+    var vNm = VEH_NOM_ADMIN[it.vehiculo] || 'Moto';
+    var xClick = it.esParada
+      ? "quitarParadaDespacho('"+it.ref+"',"+it.paradaIndex+")"
+      : "cancelarPedidoLav('"+it.tipo+"','"+it.ref+"')";
+    return '<div style="display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:10px 13px;margin-bottom:8px;">'+
+      '<div style="width:22px;height:22px;border-radius:50%;background:var(--green);color:#04241a;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'+num+'</div>'+
+      '<div style="flex:1;min-width:0;">'+
+        '<div style="font-size:13px;font-weight:700;color:var(--tx);">'+esc(it.dest)+'</div>'+
+        '<div style="font-size:11px;font-weight:700;color:var(--green);margin-top:2px;">'+vIco+' '+vNm+(it.monto?' · '+esc(it.monto):'')+'</div>'+
+      '</div>'+
+      '<div onclick="'+xClick+'" style="color:var(--mut);font-size:18px;cursor:pointer;padding:0 4px;flex-shrink:0;">✕</div>'+
+    '</div>';
+  }
+
+  if(!viajesEnCurso.length && !viajesNoEnCurso.length){
+    cont.innerHTML = '<div class="empty"><div class="e">📭</div>Sin viajes en '+nombreLav+'.</div>';
+    return;
+  }
+
+  var html = '';
+  html += '<div class="sec-t" style="margin-top:0;">🚦 En curso ('+viajesEnCurso.length+')</div>';
+  html += viajesEnCurso.length ? viajesEnCurso.map(function(it,i){ return renderFila(it,i+1); }).join('') : '<div style="font-size:12px;color:var(--mut);padding:6px 0 14px;">Ninguno en curso ahora mismo.</div>';
+  html += '<div class="sec-t">⏳ No en curso · pendientes ('+viajesNoEnCurso.length+')</div>';
+  html += viajesNoEnCurso.length ? viajesNoEnCurso.map(function(it,i){ return renderFila(it,i+1); }).join('') : '<div style="font-size:12px;color:var(--mut);padding:6px 0;">Sin pendientes.</div>';
+  cont.innerHTML = html;
+}
+
+async function cancelarPedidoLav(tipo, ref){
+  if(!confirm('¿Cancelar este pedido? Esta acción no se puede deshacer.')) return;
+  try{
+    var tabla = tipo==='despacho' ? 'despachos' : 'pedidos';
+    await fetch(FIREBASE+'/'+tabla+'/'+ref+'.json', {
+      method:'PATCH', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({estado:'cancelado'})
+    });
+    cargarPedidosLavanderia();
+  }catch(e){ console.warn('[cancelarPedidoLav]', e); alert('No se pudo cancelar.'); }
+}
+
+// Quita SOLO una parada (un viaje) dentro de un despacho con varias — si queda vacío, cancela el despacho completo
+async function quitarParadaDespacho(despachoRef, paradaIndex){
+  if(!confirm('¿Eliminar este viaje de la ruta?')) return;
+  try{
+    var r = await fetch(FIREBASE+'/despachos/'+despachoRef+'.json');
+    var d = await r.json();
+    if(!d || !d.paradas) return;
+    d.paradas.splice(paradaIndex, 1);
+    if(!d.paradas.length){
+      await fetch(FIREBASE+'/despachos/'+despachoRef+'.json', {
+        method:'PATCH', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({estado:'cancelado'})
+      });
+    } else {
+      var nuevoCoste = d.paradas.reduce(function(s,p){ return s+precioViajeAdmin(p.vehiculo, d.servicio); }, 0);
+      await fetch(FIREBASE+'/despachos/'+despachoRef+'.json', {
+        method:'PATCH', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({paradas:d.paradas, total_viajes:d.paradas.length, coste_rider:parseFloat(nuevoCoste.toFixed(2))})
+      });
+    }
+    cargarPedidosLavanderia();
+  }catch(e){ console.warn('[quitarParadaDespacho]', e); alert('No se pudo eliminar el viaje.'); }
+}
+
+// ── VIAJES ──
+var periodoSel='mes';
+function selPeriodo(el,p){
+  periodoSel=p;
+  document.querySelectorAll('[data-p]').forEach(function(b){b.classList.toggle('on',b===el);});
+  cargarViajes();
+}
+function pintarSelectorRidersAsignar(){
+  var sel = document.getElementById('av-rider');
+  if(!sel || sel.dataset.pintado) return;
+  sel.innerHTML = RIDERS.map(function(r){ return '<option value="'+r.c+'" data-nombre="'+esc(r.n)+'">'+r.v+' '+esc(r.n)+'</option>'; }).join('');
+  sel.dataset.pintado = '1';
+}
+
+async function asignarViajeDirecto(){
+  try{
+    var lav = document.getElementById('av-lav').value;
+    var destino = document.getElementById('av-destino').value.trim();
+    var precio = parseFloat(document.getElementById('av-precio').value) || 0;
+    var selRider = document.getElementById('av-rider');
+    var riderKey = selRider.value;
+    var riderNombre = selRider.options[selRider.selectedIndex].dataset.nombre;
+    if(!destino){ alert('Escribe el destino del viaje'); return; }
+    if(!precio){ alert('Indica el precio'); return; }
+    if(!riderKey){ alert('Elige un rider'); return; }
+
+    var ref = 'DSP-'+Date.now();
+    var despacho = {
+      ref: ref, lavanderia: lav, lavId: lav==='Perfect Clean'?'pc':'prim',
+      paradas: [{dest: destino, accion:'Llevar', vehiculo:'moto'}],
+      total_viajes: 1, coste_rider: precio,
+      estado: 'pendiente', ts: Date.now(), dia: fechaLocalStr(),
+      riderKey: riderKey, riderAsignado: riderNombre, asignadoManual: true
+    };
+    await fetch(FIREBASE+'/despachos/'+ref+'.json', {
+      method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(despacho)
+    });
+    document.getElementById('av-destino').value = '';
+    document.getElementById('av-precio').value = '';
+    cargarViajes();
+    alert('✅ Viaje asignado a '+riderNombre);
+  }catch(e){ console.warn('[asignarViajeDirecto]', e); alert('No se pudo asignar el viaje.'); }
+}
+
+async function cargarViajes(){
+  try{
+    var r=await fetch(FIREBASE+'/viajes.json');
+    var data=await r.json()||{};
+    var arr=Object.values(data).filter(Boolean);
+
+    // ── Sumar también los despachos reales (donde cae lo que registra el personal) ──
+    var r2=await fetch(FIREBASE+'/despachos.json');
+    var data2=await r2.json()||{};
+    var arrDesp=Object.values(data2).filter(Boolean).map(function(d){
+      return { ts:d.ts, dia:d.dia, num_viajes:d.total_viajes||0, coste:d.coste_rider||0,
+        lavanderia:d.lavanderia, ref:d.ref, estado:d.estado, servicio:d.servicio,
+        paradas:d.paradas||[], riderAsignado:d.riderAsignado||'' };
+    });
+    arr = arr.concat(arrDesp);
+
+    var hoy=fechaLocalStr();
+    var ahora=new Date();
+    var inicioSemana=new Date(ahora); inicioSemana.setDate(ahora.getDate()-ahora.getDay()); inicioSemana.setHours(0,0,0,0);
+    var inicioMes=new Date(ahora.getFullYear(),ahora.getMonth(),1);
+    var filtrado=arr.filter(function(v){
+      var d=new Date(v.ts||0);
+      if(periodoSel==='dia'){
+        if(v.dia) return v.dia===hoy;
+        return d.getFullYear()===ahora.getFullYear() && d.getMonth()===ahora.getMonth() && d.getDate()===ahora.getDate();
+      }
+      if(periodoSel==='semana') return d>=inicioSemana;
+      if(periodoSel==='mes') return d>=inicioMes;
+      return true; // 'todo' — sin filtro de fecha
+    });
+    // Stats
+    var totalViajes=filtrado.reduce(function(s,v){return s+(v.num_viajes||0);},0);
+    var totalCoste=filtrado.reduce(function(s,v){return s+(v.coste||0);},0);
+    document.getElementById('v-total-viajes').textContent=totalViajes;
+    document.getElementById('v-total-coste').textContent=totalCoste.toFixed(2)+'€';
+    document.getElementById('v-total-desp').textContent=filtrado.length;
+    document.getElementById('v-avg-viaje').textContent=filtrado.length?( totalViajes/filtrado.length).toFixed(1):0;
+    // Lista
+    var lista=document.getElementById('viajes-lista');
+    if(!filtrado.length){lista.innerHTML='<div class="empty"><div class="e">🛵</div>Sin viajes en este período.</div>';return;}
+    filtrado.sort(function(a,b){return (b.ts||0)-(a.ts||0);});
+    lista.innerHTML=filtrado.map(function(v){
+      var fecha=v.ts?new Date(v.ts).toLocaleString('es-ES',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
+      var paradas = v.paradas || [];
+      var conteoVeh = {moto:0, auto:0, patin:0};
+      paradas.forEach(function(p){ conteoVeh[p.vehiculo||'moto'] = (conteoVeh[p.vehiculo||'moto']||0)+1; });
+      var vehTxt = [];
+      if(conteoVeh.moto)  vehTxt.push('🛵 '+conteoVeh.moto+' moto');
+      if(conteoVeh.auto)  vehTxt.push('🚗 '+conteoVeh.auto+' auto');
+      if(conteoVeh.patin) vehTxt.push('🛴 '+conteoVeh.patin+' patín');
+      var detalleParadas = paradas.map(function(p){
+        return '<div style="font-size:11px;color:var(--mut);padding:4px 0;border-top:1px solid var(--line);">'+
+          (p.vehiculo==='auto'?'🚗':p.vehiculo==='patin'?'🛴':'🛵')+' '+esc(p.dest||'—')+' · '+esc(p.accion||'')+
+          (p.hora?' · 🕐 '+esc(p.hora):'')+'</div>';
+      }).join('');
+      var refSeguro = (v.ref||'').replace(/'/g,"\\'");
+      return '<div class="card" id="card-desp-'+esc(v.ref||'')+'" style="margin-bottom:10px;">'+
+        '<div class="h"><span class="ref">'+esc(v.ref||'—')+'</span>'+
+        '<span class="badge b-'+( v.estado==='completado'||v.estado==='entregado'?'afiliado':'pendiente')+'" style="margin-left:auto;">'+esc(v.estado||'pendiente')+'</span></div>'+
+        '<div class="nm">'+esc(v.lavanderia||'—')+(v.servicio==='expres'?' · ⚡ Exprés':'')+'</div>'+
+        '<div class="meta">'+
+          '🛵 '+( v.num_viajes||0)+' viaje'+(v.num_viajes!==1?'s':'')+
+          ' · 💰 '+( v.coste||0).toFixed(2)+'€'+
+          (vehTxt.length?' · '+vehTxt.join(' · '):'')+
+          '<br>🕐 '+fecha+
+          (v.riderAsignado?'<br>🧑‍💼 Rider: '+esc(v.riderAsignado):'')+
+        '</div>'+
+        (detalleParadas ? '<div style="margin-top:8px;">'+detalleParadas+'</div>' : '')+
+        '<div style="display:flex;gap:8px;align-items:center;margin-top:10px;padding-top:8px;border-top:1px solid var(--line);">'+
+          '<input id="rider-inp-'+esc(v.ref||'')+'" placeholder="Asignar rider..." value="'+esc(v.riderAsignado||'')+'" style="flex:1;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;color:var(--tx);font-size:12px;font-family:inherit;">'+
+          '<button onclick="guardarRiderDespacho(\''+refSeguro+'\')" style="background:var(--green);color:#04241a;border:none;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer;">Guardar</button>'+
+        '</div>'+
+        '<select class="sel" style="margin-top:8px;" onchange="cambiarEstadoDespacho(\''+refSeguro+'\',this.value)">'+
+          ['pendiente','aceptado','en_camino','entregado','cancelado'].map(function(o){ return '<option value="'+o+'"'+((v.estado||'pendiente')===o?' selected':'')+'>'+o+'</option>'; }).join('')+
+        '</select>'+
+      '</div>';
+    }).join('');
+  }catch(e){document.getElementById('viajes-lista').innerHTML='<div class="empty"><div class="e">⚠️</div>Error al cargar.</div>';}
+}
+
+// ── Destacar/iluminar una orden — se guarda en este navegador del Admin ──
+async function cambiarEstadoDespacho(ref, estado){
+  try{
+    await fetch(FIREBASE+'/despachos/'+ref+'.json', {
+      method:'PATCH', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({estado: estado})
+    });
+    cargarViajes();
+  }catch(e){ console.warn('[cambiarEstadoDespacho]', e); }
+}
+
+// ── PEDIDOS (reales desde Firebase) ──
+async function cargarPedidos(){
+  $('pedidos').innerHTML = '<div class="empty"><div class="e">⏳</div>Cargando…</div>';
+  var data = {};
+  try { var r = await fetch(FIREBASE + "/pedidos.json"); data = await r.json() || {}; }
+  catch(e){ $('pedidos').innerHTML = '<div class="empty"><div class="e">⚠️</div>No se pudo conectar con la base de datos.</div>'; return; }
+
+  var arr = Object.entries(data).map(function(e){ return Object.assign({ref:e[0]}, e[1]); });
+  arr.sort(function(a,b){ return (b.ts||0)-(a.ts||0); });
+
+  // Stats
+  var hoy = new Date(); hoy.setHours(0,0,0,0);
+  var deHoy = arr.filter(function(p){ return (p.ts||0) >= hoy.getTime(); });
+  var entregados = arr.filter(function(p){ return p.estado==='entregado'; });
+  var ingresos = entregados.reduce(function(s,p){ return s + (parseFloat(String(p.total).replace(/[^0-9.]/g,''))||0); }, 0);
+  var ingresosTxt = ingresos.toFixed(0)+"€";
+  _ingresosRealAdmin = ingresosTxt;
+  $('stats').innerHTML =
+    statBox(arr.length, "Total pedidos") +
+    statBox(arr.filter(function(p){return p.estado!=='entregado';}).length, "En curso") +
+    statBox(deHoy.length, "Hoy") +
+    statBox(saldosOcultosAdmin() ? '••••' : ingresosTxt, "Ingresos entregados");
+
+  if(arr.length===0){ $('pedidos').innerHTML = '<div class="empty"><div class="e">📭</div>Aún no hay pedidos. Cuando un cliente pida, aparecerá aquí.</div>'; return; }
+  $('pedidos').innerHTML = arr.map(tarjeta).join("");
+}
+function statBox(n,l){ return '<div class="stat"><div class="n">'+n+'</div><div class="l">'+l+'</div></div>'; }
+
+// ── MOSTRAR / OCULTAR SALDOS (ADMIN) ──
+var _ingresosRealAdmin = '0€';
+function saldosOcultosAdmin(){
+  try{ return localStorage.getItem('lavobcn_saldos_ocultos_admin')==='1'; }catch(e){ return false; }
+}
+function toggleSaldosAdmin(){
+  try{
+    var nuevo = !saldosOcultosAdmin();
+    localStorage.setItem('lavobcn_saldos_ocultos_admin', nuevo ? '1' : '0');
+    var ojo = document.getElementById('ojo-saldos-admin');
+    if(ojo) ojo.textContent = nuevo ? '🙈' : '👁️';
+    cargarPedidos();
+  }catch(e){ console.warn('[toggleSaldosAdmin]', e); }
+}
+function esc(s){ return String(s||"").replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+async function guardarRiderDespacho(ref){
+  try{
+    var inp = document.getElementById('rider-inp-'+ref);
+    if(!inp) return;
+    var nombre = inp.value.trim();
+    await fetch(FIREBASE+'/despachos/'+ref+'.json', {
+      method:'PATCH', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({riderAsignado: nombre})
+    });
+    inp.style.borderColor = 'var(--green)';
+    setTimeout(function(){ if(inp) inp.style.borderColor = 'var(--line)'; }, 1200);
+  }catch(e){ console.warn('[guardarRiderDespacho]', e); }
+}
+
+function tarjeta(p){
+  var est = p.estado || 'pendiente';
+  var bcls = est==='entregado'?'b-entregado':(est==='en_camino'||est==='camino'?'b-camino':'b-pendiente');
+  var opciones = ['pendiente','en_camino','entregado'];
+  return '<div class="card">'+
+    '<div class="h"><span class="ref">'+esc(p.ref)+'</span>'+
+    '<span class="badge '+bcls+'">'+esc(est)+'</span></div>'+
+    '<div class="nm">'+esc(p.tipo||'Pedido')+(p.local?' · '+esc(p.local):'')+'</div>'+
+    '<div class="meta">'+
+      (p.cliente?'👤 '+esc(p.cliente):'')+(p.tel?' · 📞 '+esc(p.tel):'')+'<br>'+
+      (p.dir?'📍 '+esc(p.dir):'')+
+      (p.total?'<br>💰 '+esc(p.total):'')+
+    '</div>'+
+    '<select class="sel" onchange="cambiar(\''+esc(p.ref)+'\',this.value)">'+
+      opciones.map(function(o){ return '<option value="'+o+'"'+(est===o?' selected':'')+'>'+o+'</option>'; }).join("")+
+    '</select>'+
+  '</div>';
+}
+async function cambiar(ref, estado){
+  try{ await fetch(FIREBASE+"/pedidos/"+ref+"/estado.json", {method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(estado)}); cargarPedidos(); }
+  catch(e){}
+}
+
+// ── RIDERS ──
+function formatoTranscurrido(ts){
+  if(!ts) return 'sin datos';
+  var seg = Math.floor((Date.now()-ts)/1000);
+  if(seg<60) return 'hace '+seg+'s';
+  var min = Math.floor(seg/60);
+  if(min<60) return 'hace '+min+' min';
+  var hor = Math.floor(min/60);
+  if(hor<24) return 'hace '+hor+'h';
+  var dias = Math.floor(hor/24);
+  return 'hace '+dias+' día'+(dias!==1?'s':'');
+}
+
+async function pintarRiders(){
+  var estados = {};
+  try{
+    var r = await fetch(FIREBASE+'/riders_estado.json');
+    estados = await r.json() || {};
+  }catch(e){}
+
+  $('riders').innerHTML = RIDERS.map(function(r){
+    var info = estados[r.c];
+    var conectadoAhora = info && info.estado==='conectado';
+    var badge = conectadoAhora
+      ? '<span class="rst" style="background:rgba(16,185,129,.18);color:var(--green);">🟢 conectado</span>'
+      : '<span class="rst" style="background:rgba(122,134,148,.15);color:var(--mut);">⚪ '+(info?formatoTranscurrido(info.ts):'sin datos')+'</span>';
+    return '<div class="rider"><span class="rico">'+r.v+'</span>'+
+      '<div><div class="rn">'+esc(r.n)+'</div><div class="rc">Usuario: '+esc(r.c)+'</div></div>'+
+      badge+'</div>';
+  }).join("");
+}
+
+// ── NOTIFICAR ──
+function destChange(){
+  var d = $('nt-dest').value;
+  $('nt-id').style.display = (d === 'cliente-uno') ? 'block' : 'none';
+}
+var _prueba20sActiva = false;
+function iniciarPrueba20s(){
+  if(_prueba20sActiva) return;
+  _prueba20sActiva = true;
+  var btn = document.getElementById('btn-prueba-20s');
+  var log = document.getElementById('prueba-20s-log');
+  log.innerHTML = '';
+  if(btn){ btn.disabled = true; btn.textContent = 'Prueba en curso…'; }
+
+  var intento = 0;
+  var TOTAL = 5;
+
+  async function disparar(){
+    intento++;
+    var hora = new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    try{
+      var r = await fetch(EMISOR+"/enviar", {method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({rol:'rider', title:'🧪 Prueba '+intento+'/'+TOTAL, body:'Enviado a las '+hora})});
+      var j = await r.json();
+      log.innerHTML += '<div>'+hora+' · aviso '+intento+'/'+TOTAL+' → '+(j.ok ? '✅ '+j.enviados+' de '+j.total : '⚠️ '+(j.error||'falló'))+'</div>';
+    }catch(e){
+      log.innerHTML += '<div>'+hora+' · aviso '+intento+'/'+TOTAL+' → ❌ sin conexión</div>';
+    }
+    if(intento < TOTAL){
+      setTimeout(disparar, 20000);
+    } else {
+      _prueba20sActiva = false;
+      if(btn){ btn.disabled = false; btn.textContent = 'Iniciar prueba (5 avisos · 20s)'; }
+      log.innerHTML += '<div style="color:var(--green);margin-top:6px;">✅ Prueba terminada. Revisa si llegaron los 5 a tu teléfono, y cada cuánto realmente los sentiste llegar.</div>';
+    }
+  }
+  disparar();
+}
+
+async function notificar(){
+  var dest = $('nt-dest').value;
+  var title = $('nt-title').value.trim() || "LavoBCN";
+  var body = $('nt-body').value.trim();
+  if(!body){ $('nt-res').textContent="Escribe un mensaje."; return; }
+
+  var payload = { title: title, body: body };
+  if(dest === 'rider'){ payload.rol = 'rider'; }
+  else if(dest === 'cliente'){ payload.rol = 'cliente'; }
+  else if(dest === 'cliente-uno'){
+    var id = $('nt-id').value.replace(/[^0-9]/g,'');
+    if(!id){ $('nt-res').textContent="Escribe el teléfono del cliente."; return; }
+    payload.rol = 'cliente'; payload.id = id;
+  }
+
+  $('nt-res').textContent = "Enviando…";
+  try{
+    var r = await fetch(EMISOR+"/enviar", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(payload)});
+    var j = await r.json();
+    $('nt-res').textContent = j.ok ? ("✅ Enviado a "+j.enviados+" de "+j.total+" dispositivo(s).") : ("⚠️ "+(j.error||"No se pudo enviar"));
+  }catch(e){ $('nt-res').textContent = "⚠️ Error de conexión con el emisor."; }
+}
+
+// ── SOPORTE: ver y responder conversaciones de clientes ──
+var _convAbierta = null;
+
+async function cargarEventosRider(){
+  try{
+    var r = await fetch(FIREBASE+'/rider_eventos.json');
+    var data = await r.json() || {};
+    var todos = [];
+    Object.keys(data).forEach(function(riderKey){
+      Object.values(data[riderKey]||{}).forEach(function(ev){
+        if(ev) todos.push(ev);
+      });
+    });
+    todos.sort(function(a,b){ return (b.ts||0) - (a.ts||0); });
+    todos = todos.slice(0, 30); // los 30 más recientes
+
+    var cont = $('lista-eventos-rider');
+    if(!todos.length){ cont.innerHTML = '<div class="empty"><div class="e">📡</div>Sin actividad todavía.</div>'; return; }
+
+    var iconoTipo = { lejos_detenido:'🚦', zigzag:'🔄', direccion_contraria:'↩️', sin_pedidos:'👀',
+      zona_pedidos:'📦', bateria:'🔋', gps_impreciso:'📡', llegada:'📍' };
+
+    cont.innerHTML = todos.map(function(ev){
+      var hora = ev.ts ? new Date(ev.ts).toLocaleString('es-ES',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'}) : '—';
+      var respuestaTxt = ev.respuesta===null ? '⏳ esperando respuesta'
+        : ev.respuesta==='si' ? '✅ respondió: Sí'
+        : ev.respuesta==='aun_no' ? '🟡 respondió: Aún no'
+        : '⏳ sin responder (se cerró solo)';
+      return '<div class="card" style="margin-bottom:8px;">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;">'+
+          '<span style="font-weight:800;font-size:13px;">'+(iconoTipo[ev.tipo]||'🔔')+' '+esc(ev.rider||'Rider')+'</span>'+
+          '<span style="font-size:11px;color:var(--mut);">'+hora+'</span>'+
+        '</div>'+
+        '<div style="font-size:12.5px;color:var(--mut);margin-top:4px;">'+esc(ev.mensaje||'')+'</div>'+
+        '<div style="font-size:11px;margin-top:5px;">'+respuestaTxt+'</div>'+
+      '</div>';
+    }).join('');
+  }catch(e){ console.warn('[cargarEventosRider]', e); }
+}
+
+async function cargarConversaciones(){
+  try{
+    var r = await fetch(FIREBASE+'/soporte_chat.json');
+    var data = await r.json() || {};
+    var ids = Object.keys(data);
+    var lista = $('sop-lista-conv');
+    if(!ids.length){ lista.innerHTML = '<div class="empty"><div class="e">💬</div>Sin conversaciones todavía.</div>'; return; }
+    var resumen = ids.map(function(id){
+      var mensajes = Object.values(data[id]||{}).filter(Boolean).sort(function(a,b){return (a.ts||0)-(b.ts||0);});
+      var ultimo = mensajes[mensajes.length-1] || {};
+      var sinLeer = mensajes.length && mensajes[mensajes.length-1].de==='cliente';
+      return {id:id, ultimo:ultimo, total:mensajes.length, sinLeer:sinLeer};
+    }).sort(function(a,b){return (b.ultimo.ts||0)-(a.ultimo.ts||0);});
+
+    lista.innerHTML = resumen.map(function(c){
+      var hora = c.ultimo.ts ? new Date(c.ultimo.ts).toLocaleString('es-ES',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
+      return '<div onclick="abrirConversacion(\''+c.id+'\')" style="display:flex;align-items:center;gap:10px;padding:12px;background:rgba(255,255,255,.03);border-radius:12px;margin-bottom:8px;cursor:pointer;'+(c.sinLeer?'border-left:3px solid #10b981;':'')+'">'+
+        '<div style="font-size:22px;">'+(c.sinLeer?'🟢':'💬')+'</div>'+
+        '<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:700;color:#fff;">Cliente '+c.id.slice(-6)+'</div>'+
+        '<div style="font-size:12px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(c.ultimo.texto||'')+'</div></div>'+
+        '<div style="font-size:10px;color:var(--mut);flex-shrink:0;">'+hora+'</div></div>';
+    }).join('');
+  }catch(e){ console.warn('[cargarConversaciones]', e); }
+}
+
+async function abrirConversacion(id){
+  try{
+    _convAbierta = id;
+    $('sop-detalle').style.display = 'block';
+    var r = await fetch(FIREBASE+'/soporte_chat/'+id+'.json');
+    var data = await r.json() || {};
+    var mensajes = Object.values(data).filter(Boolean).sort(function(a,b){return (a.ts||0)-(b.ts||0);});
+    var feed = $('sop-feed-admin');
+    feed.innerHTML = mensajes.map(function(m){
+      var hora = new Date(m.ts||0).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
+      var esCliente = m.de==='cliente';
+      return '<div style="max-width:80%;align-self:'+(esCliente?'flex-start':'flex-end')+';background:'+(esCliente?'rgba(255,255,255,.06)':'#10b981')+';color:'+(esCliente?'#fff':'#04241a')+';padding:9px 12px;border-radius:12px;font-size:13px;">'+
+        (m.texto||'').replace(/</g,'&lt;')+'<div style="font-size:10px;opacity:.65;margin-top:3px;">'+hora+'</div></div>';
+    }).join('');
+    feed.style.display = 'flex'; feed.style.flexDirection = 'column';
+    feed.scrollTop = feed.scrollHeight;
+  }catch(e){ console.warn('[abrirConversacion]', e); }
+}
+
+function cerrarDetalleSoporte(){
+  $('sop-detalle').style.display = 'none';
+  _convAbierta = null;
+  cargarConversaciones();
+}
+
+async function responderSoporte(){
+  try{
+    if(!_convAbierta) return;
+    var inp = $('sop-admin-inp');
+    var texto = inp.value.trim();
+    if(!texto) return;
+    var ts = Date.now();
+    await fetch(FIREBASE+'/soporte_chat/'+_convAbierta+'/'+ts+'.json', {
+      method:'PUT', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({de:'admin', texto:texto, ts:ts})
+    });
+    inp.value = '';
+    await abrirConversacion(_convAbierta);
+  }catch(e){ console.warn('[responderSoporte]', e); }
+}
+</script>
+<!-- SELECTOR AL CERRAR SESIÓN — no depende de que index.html esté subido -->
+<div id="salir-ov" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:900;align-items:flex-end;justify-content:center;">
+  <div style="width:100%;max-width:430px;background:var(--bg);border-radius:22px 22px 0 0;padding:22px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div style="font-size:15px;font-weight:900;color:var(--tx);">¿Cómo quieres entrar?</div>
+      <div onclick="document.getElementById('salir-ov').style.display='none';" style="font-size:24px;color:var(--mut);cursor:pointer;">✕</div>
+    </div>
+    <button onclick="window.location.href='cliente.html';" style="width:100%;padding:13px;border-radius:12px;background:var(--panel);border:1.5px solid var(--line);color:var(--tx);font-size:14px;font-weight:700;margin-bottom:8px;cursor:pointer;font-family:inherit;">📱 Soy cliente</button>
+    <button onclick="window.location.href='rider.html';" style="width:100%;padding:13px;border-radius:12px;background:var(--panel);border:1.5px solid var(--line);color:var(--tx);font-size:14px;font-weight:700;margin-bottom:8px;cursor:pointer;font-family:inherit;">🛵 Soy repartidor</button>
+    <button onclick="location.reload();" style="width:100%;padding:13px;border-radius:12px;background:var(--panel);border:1.5px solid var(--line);color:var(--tx);font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">⚙️ Administración</button>
+  </div>
+</div>
+</body>
+</html>
