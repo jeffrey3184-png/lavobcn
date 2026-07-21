@@ -1,0 +1,33 @@
+{
+  "rules": {
+    ".read": true,
+    ".write": true,
+
+    "pedidos": {
+      ".indexOn": ["estado", "riderKey", "tipo", "ts"]
+    },
+
+    "despachos": {
+      ".indexOn": ["estado", "riderKey", "ts"]
+    },
+
+    "viajes": {
+      ".indexOn": ["estado", "riderKey", "ts"]
+    },
+
+    "autosave": {
+      "rider":    { ".read": true, ".write": true },
+      "despacho": { ".read": true, ".write": true },
+      "cliente":  { ".read": true, ".write": true }
+    },
+
+    "riders": {
+      ".indexOn": ["conectado", "userKey"]
+    },
+
+    "kpi_params": {
+      ".read": true,
+      ".write": true
+    }
+  }
+}

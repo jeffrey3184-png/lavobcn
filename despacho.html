@@ -130,6 +130,7 @@ html,body{background:#0d1117;color:#fff;font-family:-apple-system,BlinkMacSystem
     <button class="btn-r" onclick="agregarCliente('Recoger')">✅ Recoger</button>
     <button class="btn-l" onclick="agregarCliente('Llevar')">🚀 Llevar</button>
   </div>
+  <button onclick="guardarClientePermanente()" style="width:100%;margin-top:8px;padding:11px;background:#059669;color:#fff;border:none;border-radius:9px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;">💾 Guardar como cliente fijo</button>
 </div>
 
 <!-- LISTA DE VIAJES -->
@@ -143,6 +144,10 @@ html,body{background:#0d1117;color:#fff;font-family:-apple-system,BlinkMacSystem
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- Firebase SDK (compat) — sincronización en tiempo real de viajes/rutas -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
 // ─── WHATSAPP AUTOMÁTICO ────────────────────────────────────────────
@@ -175,11 +180,11 @@ function guardar(){
   try{
     var dato = {lav: LAV, veh: VEH, viajes: VIAJES, ts: Date.now()};
     localStorage.setItem(claveStorage(), JSON.stringify(dato));
-    // Firebase también
-    fetch(FB + '/borradores2/' + LAV + '.json', {
+    // Firebase — mismo nodo y campos que usa cargar() para recuperar (autosave/despacho · VIAJES/LAV)
+    fetch(FB + '/autosave/despacho.json', {
       method: 'PUT',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(dato)
+      body: JSON.stringify({LAV: LAV, VEH: VEH, VIAJES: VIAJES, ts: Date.now()})
     }).catch(function(){});
     // Mostrar indicador "Guardado"
     var ind = document.getElementById('guardado-ind');
@@ -189,14 +194,16 @@ function guardar(){
 
 function cargar(){
   try{
+    var localTs = 0;
     var raw = localStorage.getItem(claveStorage());
     if(raw){
       var dato = JSON.parse(raw);
       if(dato.viajes && dato.viajes.length) VIAJES = dato.viajes;
       if(dato.veh) selVeh(dato.veh);
-      return;
+      localTs = dato.ts || 0;
     }
-    // Si localStorage está vacío, intentar desde Firebase autosave
+    // Firebase es la FUENTE DE VERDAD: si tiene viajes del mismo día y lavandería
+    // más nuevos que la copia local, mandan (evita que localStorage viejo gane).
     fetch('https://lavobcn-default-rtdb.europe-west1.firebasedatabase.app/autosave/despacho.json')
       .then(function(r){ return r.json(); })
       .then(function(d){
@@ -205,9 +212,10 @@ function cargar(){
         var hoy = new Date().toISOString().slice(0,10);
         if(savedDate !== hoy) return; // solo del mismo día
         if(d.LAV && d.LAV !== LAV) return; // solo si es la misma lavandería
+        if((d.ts||0) <= localTs) return; // la copia local ya es igual o más nueva
         VIAJES = d.VIAJES;
         render();
-        mostrarToast('✅ '+VIAJES.length+' viajes recuperados', '#10b981');
+        mostrarToast('✅ '+VIAJES.length+' viajes sincronizados', '#10b981');
       }).catch(function(){});
   }catch(e){}
 }
@@ -424,6 +432,37 @@ function agregarCliente(accion){
   vibrar();
 }
 
+// Guarda el cliente PERMANENTEMENTE en Firebase (aparece siempre en la lista)
+async function guardarClientePermanente(){
+  var nom = (document.getElementById('cli-nom').value||'').trim();
+  var tel = (document.getElementById('cli-tel').value||'').trim();
+  var dir = (document.getElementById('cli-dir').value||'').trim();
+  if(!nom){ mostrarToast('Escribe al menos el nombre', '#ef4444'); return; }
+  var id = 'cc_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+  var cliente = {
+    id: id, nombre: nom, empresa: '', tipo: 'particular',
+    direccion: dir, coordenadas: {lat:0,lng:0},
+    telefono: tel, persona_contacto: '', email: '', horario: '', zona: 'Sant Martí',
+    vehiculo_recomendado: 'moto', servicios_disponibles: ['lavanderia','recogidas','entregas'],
+    estado: 'activo', observaciones: 'Añadido desde el despacho',
+    prioridad: 'media', color_identificativo: '#3b82f6', categoria_registro: 'fijo',
+    veces_usado: 0, ultima_recogida: null, ultimo_servicio: null,
+    fecha_creacion: Date.now(), fecha_ultima_actualizacion: Date.now(), activo: true
+  };
+  try {
+    var r = await fetch('https://lavobcn-default-rtdb.europe-west1.firebasedatabase.app/clientes_corporativos/' + id + '.json', {
+      method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(cliente)
+    });
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    mostrarToast('✅ Cliente guardado: ' + nom, '#059669');
+    ['cli-nom','cli-tel','cli-dir','cli-items'].forEach(function(idc){ document.getElementById(idc).value=''; });
+    document.getElementById('cli-form').style.display = 'none';
+    if(typeof cargarClientesFirebase==='function') cargarClientesFirebase();
+  } catch(e) {
+    mostrarToast('Error al guardar: ' + e.message, '#ef4444');
+  }
+}
+
 function toggleCliForm(){
   var f = document.getElementById('cli-form');
   f.style.display = f.style.display==='none' ? 'block' : 'none';
@@ -615,6 +654,46 @@ function filtrarTipo(tipo){
 selLav('pc');
 // Regla 3: cargar clientes desde Firebase (con respaldo automático)
 cargarClientesFirebase();
+
+// ─── SINCRONIZACIÓN EN TIEMPO REAL (Firebase onValue) ───
+// Los viajes/rutas se actualizan solos en iPhone, Android y PC cuando cambian
+// desde cualquier dispositivo. localStorage queda solo como caché offline.
+(function initFirebaseRealtimeDespacho(){
+  try{
+    if(typeof firebase !== 'undefined' && firebase.initializeApp && !(firebase.apps && firebase.apps.length)){
+      firebase.initializeApp({
+        apiKey: "AIzaSyDaopojkUpu7kQ2-H8yEaGJ21SqUZI9I1w",
+        authDomain: "lavobcn.firebaseapp.com",
+        databaseURL: "https://lavobcn-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "lavobcn",
+        storageBucket: "lavobcn.firebasestorage.app",
+        messagingSenderId: "749157836989",
+        appId: "1:749157836989:web:c1052afdfab2b6aca0afd4"
+      });
+    }
+  }catch(e){ console.warn('[Firebase init despacho]', e); }
+})();
+
+function escucharDespachoTiempoReal(){
+  try{
+    if(typeof firebase === 'undefined' || !firebase.database) return; // sin SDK → queda el arranque de cargar()
+    firebase.database().ref('autosave/despacho').on('value', function(snap){
+      var d = snap.val();
+      if(!d || !d.VIAJES) return;
+      var savedDate = d.ts ? new Date(d.ts).toISOString().slice(0,10) : '';
+      var hoy = new Date().toISOString().slice(0,10);
+      if(savedDate !== hoy) return;              // solo del mismo día
+      if(d.LAV && d.LAV !== LAV) return;          // solo la lavandería activa
+      if(JSON.stringify(d.VIAJES) === JSON.stringify(VIAJES)) return; // sin cambios reales (evita re-render y bucles)
+      VIAJES = d.VIAJES;                          // Firebase = fuente de verdad
+      // Marca esta firma como sincronizada → el autoguardado NO la reescribe (rompe lectura→escritura→lectura)
+      if(window._despachoSyncFirma) window._despachoSyncFirma(JSON.stringify({LAV: LAV, VEH: VEH, VIAJES: VIAJES}));
+      try{ localStorage.setItem(claveStorage(), JSON.stringify({lav:LAV, veh:VEH, viajes:VIAJES, ts:d.ts})); }catch(e){} // solo caché
+      render();
+    }, function(err){ console.warn('[despacho tiempo real]', err); });
+  }catch(e){ console.warn('[escucharDespachoTiempoReal]', e); }
+}
+escucharDespachoTiempoReal();
 </script>
 
 <!-- AUTOSAVE IND -->
@@ -646,12 +725,20 @@ cargarClientesFirebase();
     }catch(e){}
   }
 
+  var _ultimaFirmaAS = null;
+  // Permite que el listener onValue marque la firma como "ya sincronizada",
+  // para que el autoguardado NO reescriba lo que acaba de llegar de Firebase.
+  window._despachoSyncFirma = function(firma){ _ultimaFirmaAS = firma; };
   function guardar(){
     try{
-      mostrar(false);
       var hora = new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
       var estado = {ts: Date.now(), hora: hora};
       try{if(typeof LAV!=='undefined')estado.LAV=LAV;}catch(e){} try{if(typeof VEH!=='undefined')estado.VEH=VEH;}catch(e){} try{if(typeof VIAJES!=='undefined')estado.VIAJES=VIAJES;}catch(e){}
+      // Escribir SOLO si el contenido cambió (no cada 3s) — evita polling y bucles con el listener
+      var firma = JSON.stringify({LAV: estado.LAV, VEH: estado.VEH, VIAJES: estado.VIAJES});
+      if(firma === _ultimaFirmaAS) return;
+      _ultimaFirmaAS = firma;
+      mostrar(false);
       localStorage.setItem('lavobcn_as_despacho', JSON.stringify(estado));
       fetch(FB_URL, {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(estado)}).catch(function(){});
       mostrar(true, hora);

@@ -3282,7 +3282,7 @@ function reject(){sonidoClic();clearInterval(expIv);clearInterval(_ringIv);docum
 
 // ── NOTIFICACIONES ──
 function pedirNotif(){if('Notification' in window&&Notification.permission==='default')Notification.requestPermission();}
-function notif(t,b){if('Notification' in window&&Notification.permission==='granted')new Notification(t,{body:b,icon:'icons/icon-192.png',tag:'lavobcn'});}
+function notif(t,b){if('Notification' in window&&Notification.permission==='granted')new Notification(t,{body:b,icon:'icon-192.png',tag:'lavobcn'});}
 function pedirNotifPedido(p){notif('🛵 Nuevo pedido — '+p.precio+'€',p.lav+' · '+p.addr+'\n📍 '+((Math.random()+0.3).toFixed(1))+' km · Pago efectivo\n⏱ Expira en 20s');}
 
 // ── CHAT ──

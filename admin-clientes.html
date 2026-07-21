@@ -171,6 +171,9 @@
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Firebase SDK (compat) — para sincronización en tiempo real de la lista de clientes -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script>
 // ═══════════════════════════════════════════════════════════════
 //  ClienteService INCRUSTADO (versión autónoma, sin módulos)
@@ -451,7 +454,39 @@ document.querySelectorAll('.chip').forEach(function(ch){
 // Botón guardar
 document.getElementById("btnGuardar").addEventListener("click", guardar);
 
-cargar();
+// ─── SINCRONIZACIÓN EN TIEMPO REAL (Firebase onValue) ───
+// La lista se actualiza sola en iPhone, Android y PC cuando alguien añade,
+// edita o elimina un cliente — sin recargar la página y sin localStorage.
+(function initFirebaseRealtime(){
+  try{
+    if(typeof firebase !== 'undefined' && firebase.initializeApp && !(firebase.apps && firebase.apps.length)){
+      firebase.initializeApp({
+        apiKey: "AIzaSyDaopojkUpu7kQ2-H8yEaGJ21SqUZI9I1w",
+        authDomain: "lavobcn.firebaseapp.com",
+        databaseURL: "https://lavobcn-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "lavobcn",
+        storageBucket: "lavobcn.firebasestorage.app",
+        messagingSenderId: "749157836989",
+        appId: "1:749157836989:web:c1052afdfab2b6aca0afd4"
+      });
+    }
+  }catch(e){ console.warn('[Firebase init]', e); }
+})();
+
+function escucharTiempoReal(){
+  try{
+    if(typeof firebase === 'undefined' || !firebase.database){ cargar(); return; }
+    firebase.database().ref(_NODO).on('value', function(snap){
+      var data = snap.val() || {};
+      clientes = {};
+      Object.keys(data).forEach(function(k){ if(data[k]) clientes[data[k].id || k] = data[k]; });
+      pintar();
+    }, function(err){ console.warn('[tiempo real]', err); cargar(); });
+  }catch(e){ console.warn('[escucharTiempoReal]', e); cargar(); }
+}
+
+// Arranque: escucha en tiempo real (incluye la carga inicial). Si el SDK falla, usa fetch.
+escucharTiempoReal();
 </script>
 </body>
 </html>

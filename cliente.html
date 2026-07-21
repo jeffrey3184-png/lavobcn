@@ -2017,7 +2017,7 @@ function clickSonido(){
 }
 function vib(ms){ try{ if(navigator.vibrate) navigator.vibrate(ms||15); }catch(e){} clickSonido(); }
 
-function SS(id){
+function _ssBase(id){
   vib();
   $('home').style.display='none';
   SCREENS.forEach(function(k){var s=$('scr-'+k);if(s)s.classList.remove('on');});
@@ -3798,7 +3798,7 @@ function cerrarDetallePed(){
 }
 
 // Cargar pedidos al abrir la pantalla y cuando se navega a ella
-var _ssOrig = typeof SS==='function' ? SS : null;
+var _ssOrig = typeof _ssBase==='function' ? _ssBase : null;
 var _pedRefreshIv = null;
 var _estadoMotorIv = null;
 
@@ -3953,12 +3953,18 @@ function tecConfirmar(){
     }catch(e){}
   }
 
+  var _ultimoEstadoGuardado = null;
   function guardar(){
     try{
-      mostrar(false);
       var hora = new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
       var estado = {ts: Date.now(), hora: hora};
       try{if(typeof lav!=='undefined')estado.lav=lav;}catch(e){} try{if(typeof srv!=='undefined')estado.srv=srv;}catch(e){} try{if(typeof viajes!=='undefined')estado.viajes=viajes;}catch(e){} try{if(typeof lavSel!=='undefined')estado.lavSel=lavSel;}catch(e){} try{if(typeof QTY!=='undefined')estado.QTY=QTY;}catch(e){}
+      // Comparar sin el timestamp (ts/hora cambian siempre): solo guardar si el CONTENIDO cambió
+      var copia = JSON.parse(JSON.stringify(estado)); delete copia.ts; delete copia.hora;
+      var firma = JSON.stringify(copia);
+      if(firma === _ultimoEstadoGuardado) return; // nada cambió → no gastar red ni tildar
+      _ultimoEstadoGuardado = firma;
+      mostrar(false);
       localStorage.setItem('lavobcn_as_cliente', JSON.stringify(estado));
       fetch(FB_URL, {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(estado)}).catch(function(){});
       mostrar(true, hora);

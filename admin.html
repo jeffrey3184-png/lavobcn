@@ -98,6 +98,7 @@
   <div class="tabs">
     <button class="tab on" data-t="panel" onclick="tab('panel')">📊 Panel</button>
     <button class="tab" data-t="lavs" onclick="tab('lavs')">🏪 Lavanderías</button>
+    <button class="tab" onclick="location.href='admin-clientes.html'">🏨 Clientes</button>
     <button class="tab" data-t="viajes" onclick="tab('viajes')">🛵 Viajes</button>
     <button class="tab" data-t="kpis" onclick="tab('kpis')">📈 KPIs</button>
     <button class="tab" data-t="riders" onclick="tab('riders')">👥 Riders</button>
@@ -491,12 +492,24 @@ var CLAVE_KPI_PARAMS = 'lavobcn_kpi_params';
 function cargarKpiParams(){
   try{
     var p = JSON.parse(localStorage.getItem(CLAVE_KPI_PARAMS)||'{}');
-    if(p.comision) document.getElementById('kp-comision').value = p.comision;
-    if(p.cac) document.getElementById('kp-cac').value = p.cac;
-    if(p.ciudad) document.getElementById('kp-ciudad').value = p.ciudad;
-    else document.getElementById('kp-ciudad').value = 'Barcelona · Sant Martí';
-    if(p.notas) document.getElementById('kp-notas').value = p.notas;
+    aplicarKpiParams(p);
   }catch(e){}
+  // Leer también de Firebase (mismo nodo /kpi_params donde guarda guardarKpiParams) — persistencia entre dispositivos
+  try{
+    fetch(FIREBASE+'/kpi_params.json').then(function(r){return r.json();}).then(function(p){
+      if(!p) return;
+      try{ localStorage.setItem(CLAVE_KPI_PARAMS, JSON.stringify(p)); }catch(e){}
+      aplicarKpiParams(p);
+    }).catch(function(){});
+  }catch(e){}
+}
+function aplicarKpiParams(p){
+  if(!p) return;
+  if(p.comision) document.getElementById('kp-comision').value = p.comision;
+  if(p.cac) document.getElementById('kp-cac').value = p.cac;
+  if(p.ciudad) document.getElementById('kp-ciudad').value = p.ciudad;
+  else document.getElementById('kp-ciudad').value = 'Barcelona · Sant Martí';
+  if(p.notas) document.getElementById('kp-notas').value = p.notas;
 }
 
 function guardarKpiParams(){
