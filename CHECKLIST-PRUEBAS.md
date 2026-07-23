@@ -87,3 +87,62 @@
 ### Cómo interpretar
 - **Reposo con PUT cada 3 s** → la comparación `_ultimaFirmaAS` no está activa (archivo viejo).
 - **PUT en cadena infinita** → el listener está reescribiendo; revisar `_despachoSyncFirma` en despacho.html.
+
+---
+
+## FASE 2 — Motor único de pedidos (hotel/empresa → /pedidos)
+
+**Qué se cambió:** `enviarARider()` del despacho ahora escribe cada parada como pedido individual en `/pedidos` (misma estructura que cliente.html), además de la ruta en `/despachos`. Así el rider los recibe por su listener de `/pedidos`.
+
+**Archivo responsable:** despacho.html · `enviarARider()`
+
+### Pruebas (iPhone · Android · PC)
+
+| # | Prueba | Cómo hacerla | Resultado esperado |
+|---|--------|--------------|--------------------|
+| 1 | Hotel llega al rider | En el despacho, añade una parada a Hotel Vincci y pulsa "Enviar al rider". Ten el rider abierto y conectado. | En el rider **suena, vibra y aparece el pedido** (igual que uno de cliente). |
+| 2 | Se puede aceptar | En el rider, acepta ese pedido. | Se acepta y entra al flujo normal (recogida → entrega). |
+| 3 | Varias paradas = varios pedidos | Añade 3 paradas y envía. | El rider recibe 3 pedidos, uno tras otro (acepta uno y aparece el siguiente). |
+| 4 | Mismo flujo que cliente | Compara un pedido de cliente y uno de hotel en el rider. | Se ven y se manejan igual (mismo diseño, misma aceptación). |
+| 5 | WhatsApp sigue llegando | Al enviar la ruta. | El WhatsApp al admin sigue funcionando como antes. |
+
+### Cómo interpretar un fallo
+- **No aparece en el rider (prueba 1):** verifica que el rider esté **conectado** (stOn) y **libre** (sin otro pedido activo). El listener solo muestra si está libre. Si sigue, revisa consola: el pedido debe estar en `/pedidos` con `estado:'pendiente'`.
+- **Aparece sin dirección:** la parada no tenía `cli_direccion`; usa el nombre del destino como respaldo. Añade la dirección al cliente en Personal de Lavandería.
+- **Llegan de golpe y solo se ve uno:** es lo normal — el rider muestra uno a la vez; al aceptar aparece el siguiente.
+
+### Cómo comprobar que ambos flujos usan el mismo nodo
+1. Crea un pedido desde **cliente** y otro desde **despacho** (hotel).
+2. En Firebase (o admin), mira el nodo `/pedidos`: **ambos** deben aparecer ahí, con `estado:'pendiente'` y campo `local`.
+3. El rider recibe los dos por el mismo listener. ✅ un solo motor.
+
+---
+
+## v1.0.4 — Cierre de accesos (3 cambios)
+
+**Claves tras esta versión:**
+- **Clientes:** `lavo2026` (nueva, exclusiva — es la que se comparte)
+- **Interna (rider / admin / despacho / clientes corporativos):** `casa1300` (NO se comparte)
+
+### Pruebas (iPhone · Android · PC)
+
+| # | Prueba | Cómo | Esperado |
+|---|---|---|---|
+| 1 | Cliente entra con clave nueva | `cliente.html?v=NUEVO` → `lavo2026` | Entra ✅ |
+| 2 | Clave vieja ya no vale en cliente | Probar `casa1300` en cliente | "Clave incorrecta" ✅ |
+| 3 | Despacho pide clave | Abrir `despacho.html?v=NUEVO` | Aparece pantalla de clave |
+| 4 | Despacho entra | Escribir `casa1300` | Entra y ve los viajes normales |
+| 5 | Clientes corporativos pide clave | Abrir `admin-clientes.html?v=NUEVO` | Aparece pantalla de clave |
+| 6 | Clientes corporativos entra | `casa1300` | Entra y ve la lista |
+| 7 | Sesión se recuerda | Cerrar y reabrir cualquiera de los dos paneles | NO vuelve a pedir clave |
+| 8 | Nada se rompió | Crear un pedido, enviarlo al rider | Todo igual que antes |
+| 9 | Tiempo real sigue | Añadir cliente en un dispositivo | Aparece en el otro sin recargar |
+
+### Cómo interpretar un fallo
+- **No aparece la pantalla de clave:** caché vieja → abre con `?v=` número nuevo.
+- **Entra sin pedir clave:** ya tenías sesión guardada. Para probar de cero, usa una ventana privada/incógnito.
+- **Clave correcta pero no entra:** revisa mayúsculas; `casa1300` va en minúsculas.
+- **Quedaste fuera del despacho:** borra los datos del sitio en el navegador y vuelve a entrar.
+
+### Limitación honesta
+Esto es una **barrera de acceso**, no seguridad criptográfica. Impide que alguien con la URL entre por accidente y que la clave de clientes abra los paneles internos. Una persona con conocimientos técnicos aún podría saltarla. La seguridad real llega en la v2.0 (Phone Auth + reglas Firebase).

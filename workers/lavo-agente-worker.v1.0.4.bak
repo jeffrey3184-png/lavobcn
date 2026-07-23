@@ -1,0 +1,273 @@
+/**
+ * ═══════════════════════════════════════════════════════════════
+ *  LAVO·BCN — AGENTE DE ATENCIÓN AL CLIENTE (IA)
+ * ═══════════════════════════════════════════════════════════════
+ *  Conecta: WhatsApp Business API (360dialog) + Claude (Anthropic) + Firebase
+ *
+ *  Flujo:
+ *   Cliente escribe por WhatsApp → 360dialog → este Worker (webhook)
+ *   → Claude decide qué hacer (responder / crear pedido / consultar estado)
+ *   → Worker ejecuta la acción en Firebase → responde al cliente por WhatsApp
+ *
+ *  SECRETOS necesarios en Cloudflare (Settings → Variables and Secrets):
+ *   - ANTHROPIC_API_KEY     (tu clave de api.anthropic.com)
+ *   - D360_API_KEY          (tu clave de 360dialog)
+ *   - D360_PHONE_ID         (id del número de WhatsApp Business)
+ *   - VERIFY_TOKEN          (una palabra secreta que tú inventas, para el webhook)
+ *
+ *  El Worker NO reemplaza nada del sistema actual. Es un canal nuevo,
+ *  desacoplado, que lee/escribe en la misma base de datos (Realtime Database).
+ * ═══════════════════════════════════════════════════════════════
+ */
+
+const FIREBASE = "https://lavobcn-default-rtdb.europe-west1.firebasedatabase.app";
+const ADMIN_WA = "34661041439";
+
+// ─── Estados legibles para el cliente ───
+const ESTADOS_LEGIBLES = {
+  pendiente:  "⏳ Pendiente de asignar rider",
+  aceptado:   "✅ Aceptado — el rider va en camino a recoger",
+  recogida:   "📦 En recogida",
+  lavando:    "🫧 Lavando",
+  secando:    "🌬️ Secando",
+  planchando: "👔 Planchando",
+  listo:      "✨ Listo para entregar",
+  "en camino":"🛵 En camino a tu dirección",
+  entregado:  "🎉 Entregado"
+};
+
+// ─── Herramientas que el agente IA puede usar ───
+const TOOLS = [
+  {
+    name: "consultar_estado_pedido",
+    description: "Consulta el estado actual de un pedido por su código de referencia (ej: LV12345).",
+    input_schema: {
+      type: "object",
+      properties: { ref: { type: "string", description: "Código de referencia del pedido" } },
+      required: ["ref"]
+    }
+  },
+  {
+    name: "crear_pedido",
+    description: "Crea un nuevo pedido de lavandería. Requiere dirección y teléfono del cliente.",
+    input_schema: {
+      type: "object",
+      properties: {
+        dir: { type: "string", description: "Dirección de recogida/entrega" },
+        tel: { type: "string", description: "Teléfono de contacto del cliente" },
+        servicio: { type: "string", description: "Tipo de servicio: lavado, planchado, tintorería, etc." },
+        nota: { type: "string", description: "Nota o instrucción especial (opcional)" }
+      },
+      required: ["dir", "tel", "servicio"]
+    }
+  },
+  {
+    name: "enviar_presupuesto",
+    description: "Calcula y envía un presupuesto estimado según el tipo de servicio y cantidad de prendas.",
+    input_schema: {
+      type: "object",
+      properties: {
+        servicio: { type: "string" },
+        prendas: { type: "number", description: "Número aproximado de prendas" }
+      },
+      required: ["servicio"]
+    }
+  }
+];
+
+// ─── System prompt del agente ───
+const SYSTEM_PROMPT = `Eres el asistente virtual de LavoBCN, un servicio de lavandería y reparto en Barcelona (barrio Sant Martí).
+
+Tu trabajo es atender a los clientes por WhatsApp de forma profesional, cálida y eficiente. Puedes:
+- Responder preguntas sobre servicios, precios y tiempos
+- Crear pedidos nuevos (siempre pide dirección y teléfono antes)
+- Consultar el estado de un pedido por su código
+- Enviar presupuestos estimados
+
+Reglas:
+- Sé breve y claro (es WhatsApp, no email). Máximo 3-4 líneas por mensaje.
+- Habla en español, tono cercano pero profesional.
+- Si no tienes un dato necesario, pídelo antes de actuar.
+- Nunca inventes precios o estados: usa las herramientas.
+- Si el cliente quiere algo que no puedes hacer, ofrece que un humano le contactará.
+
+Servicios de LavoBCN: lavado, secado, planchado, tintorería. Recogida y entrega a domicilio con rider.`;
+
+// ─── Handler principal ───
+export default {
+  async fetch(request, env) {
+    const url = new URL(request.url);
+
+    // Verificación del webhook (360dialog / Meta lo pide al conectar)
+    if (url.pathname === "/webhook" && request.method === "GET") {
+      const mode = url.searchParams.get("hub.mode");
+      const token = url.searchParams.get("hub.verify_token");
+      const challenge = url.searchParams.get("hub.challenge");
+      if (mode === "subscribe" && token === env.VERIFY_TOKEN) {
+        return new Response(challenge, { status: 200 });
+      }
+      return new Response("Forbidden", { status: 403 });
+    }
+
+    // Recepción de mensajes entrantes de WhatsApp
+    if (url.pathname === "/webhook" && request.method === "POST") {
+      try {
+        const body = await request.json();
+        const msg = extraerMensaje(body);
+        if (!msg) return new Response("ok", { status: 200 });
+
+        // Procesar en segundo plano (responder rápido al webhook)
+        await procesarMensaje(msg.from, msg.text, env);
+        return new Response("ok", { status: 200 });
+      } catch (e) {
+        return new Response("error: " + String(e), { status: 200 });
+      }
+    }
+
+    // Endpoint de prueba
+    if (url.pathname === "/test") {
+      return new Response("LAVO Agente IA activo. Webhook en /webhook", { status: 200 });
+    }
+
+    return new Response("LAVO Agente IA", { status: 200 });
+  }
+};
+
+// ─── Extraer mensaje del payload de 360dialog ───
+function extraerMensaje(body) {
+  try {
+    const entry = body.entry?.[0];
+    const change = entry?.changes?.[0];
+    const message = change?.value?.messages?.[0];
+    if (!message || message.type !== "text") return null;
+    return { from: message.from, text: message.text.body };
+  } catch { return null; }
+}
+
+// ─── Procesar el mensaje con Claude ───
+async function procesarMensaje(from, texto, env) {
+  // 1. Recuperar contexto/memoria del cliente
+  const memoria = await cargarMemoria(from, env);
+
+  // 2. Construir mensajes con historial
+  const messages = (memoria.historial || []).concat([{ role: "user", content: texto }]);
+
+  // 3. Llamar a Claude
+  const respuesta = await llamarClaude(messages, env);
+
+  // 4. Si Claude quiere usar una herramienta, ejecutarla
+  let textoFinal = "";
+  for (const bloque of respuesta.content) {
+    if (bloque.type === "text") textoFinal += bloque.text;
+    if (bloque.type === "tool_use") {
+      const resultado = await ejecutarHerramienta(bloque.name, bloque.input, from, env);
+      // Segunda llamada a Claude con el resultado de la herramienta
+      messages.push({ role: "assistant", content: respuesta.content });
+      messages.push({ role: "user", content: [{ type: "tool_result", tool_use_id: bloque.id, content: resultado }] });
+      const respuesta2 = await llamarClaude(messages, env);
+      for (const b2 of respuesta2.content) if (b2.type === "text") textoFinal += b2.text;
+    }
+  }
+
+  // 5. Enviar respuesta al cliente por WhatsApp
+  await enviarWhatsApp(from, textoFinal || "Disculpa, ¿puedes repetirlo?", env);
+
+  // 6. Guardar en memoria
+  memoria.historial = messages.concat([{ role: "assistant", content: textoFinal }]).slice(-20);
+  await guardarMemoria(from, memoria, env);
+}
+
+// ─── Llamada a la API de Claude ───
+async function llamarClaude(messages, env) {
+  const r = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": env.ANTHROPIC_API_KEY,
+      "anthropic-version": "2023-06-01"
+    },
+    body: JSON.stringify({
+      model: "claude-sonnet-5",
+      max_tokens: 1024,
+      system: SYSTEM_PROMPT,
+      tools: TOOLS,
+      messages: messages
+    })
+  });
+  return await r.json();
+}
+
+// ─── Ejecutar herramientas (acciones reales en Firebase) ───
+async function ejecutarHerramienta(nombre, input, from, env) {
+  if (nombre === "consultar_estado_pedido") {
+    const r = await fetch(`${FIREBASE}/pedidos/${input.ref}.json`);
+    const p = await r.json();
+    if (!p) return "No encontré ningún pedido con ese código.";
+    const estado = ESTADOS_LEGIBLES[p.estado] || p.estado;
+    return `Pedido ${input.ref}: ${estado}. Dirección: ${p.dir || "—"}. Total: ${p.total || "—"}.`;
+  }
+
+  if (nombre === "crear_pedido") {
+    const ref = "LV" + Date.now().toString().slice(-6);
+    const codigo = Math.floor(1000 + Math.random() * 9000).toString();
+    const pedido = {
+      ref, tipo: "lavanderia", dir: input.dir, tel: input.tel,
+      servicio: input.servicio, nota: input.nota || "",
+      estado: "pendiente", ts: Date.now(), codigo,
+      origen: "agente_whatsapp"
+    };
+    await fetch(`${FIREBASE}/pedidos/${ref}.json`, {
+      method: "PUT", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(pedido)
+    });
+    // Avisar al admin
+    await enviarWhatsApp(ADMIN_WA, `🧺 NUEVO PEDIDO (vía agente IA)\nRef: ${ref}\nDir: ${input.dir}\nTel: ${input.tel}\nServicio: ${input.servicio}\nCódigo: ${codigo}`, env);
+    return `Pedido creado con éxito. Código de referencia: ${ref}. Código de entrega: ${codigo}. Un rider lo recogerá pronto.`;
+  }
+
+  if (nombre === "enviar_presupuesto") {
+    // Precios base orientativos (ajustables)
+    const precios = { lavado: 8, secado: 5, planchado: 10, tintoreria: 15 };
+    const base = precios[input.servicio?.toLowerCase()] || 10;
+    const prendas = input.prendas || 1;
+    const total = base + (prendas > 5 ? (prendas - 5) * 1.5 : 0);
+    return `Presupuesto estimado para ${input.servicio}: ${total.toFixed(2)}€ (aprox, ${prendas} prendas). Incluye recogida y entrega.`;
+  }
+
+  return "Acción no reconocida.";
+}
+
+// ─── Memoria del cliente (Firebase) ───
+async function cargarMemoria(from, env) {
+  try {
+    const r = await fetch(`${FIREBASE}/agente_memoria/${from}.json`);
+    return (await r.json()) || {};
+  } catch { return {}; }
+}
+async function guardarMemoria(from, memoria, env) {
+  try {
+    await fetch(`${FIREBASE}/agente_memoria/${from}.json`, {
+      method: "PUT", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(memoria)
+    });
+  } catch {}
+}
+
+// ─── Enviar mensaje por WhatsApp (360dialog) ───
+async function enviarWhatsApp(to, texto, env) {
+  try {
+    await fetch(`https://waba-v2.360dialog.io/messages`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "D360-API-KEY": env.D360_API_KEY
+      },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        to: to,
+        type: "text",
+        text: { body: texto }
+      })
+    });
+  } catch (e) { /* log */ }
+}

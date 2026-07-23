@@ -52,6 +52,44 @@
 </style>
 </head>
 <body>
+
+<!-- PANTALLA DE CLAVE (acceso interno) -->
+<div id="ac-login-ov" style="display:none;position:fixed;inset:0;z-index:99998;background:#0d1117;
+  flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:30px;">
+  <div style="width:60px;height:60px;border-radius:50%;background:#E85D04;display:flex;
+    align-items:center;justify-content:center;font-size:19px;font-weight:900;color:#fff;font-family:Georgia,serif;">Lavo</div>
+  <div style="color:#fff;font-size:18px;font-weight:900;">Clientes Corporativos</div>
+  <input type="password" id="ac-pwd" placeholder="Clave de acceso" autocomplete="off"
+    style="width:100%;max-width:280px;padding:14px;border-radius:12px;background:#161b22;border:1.5px solid #232c39;color:#fff;font-size:15px;text-align:center;font-family:inherit;outline:none;"
+    onkeyup="if(event.key==='Enter')intentarLoginClientes()">
+  <button onclick="intentarLoginClientes()" style="width:100%;max-width:280px;padding:14px;border-radius:12px;background:#10b981;border:none;color:#04241a;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;">Entrar</button>
+  <div id="ac-login-err" style="display:none;color:#ef4444;font-size:13px;">Clave incorrecta.</div>
+</div>
+<script>
+(function(){
+  function yaEntro(){ try{ return localStorage.getItem('lavobcn_clientes_sesion')==='1'; }catch(e){ return false; } }
+  function pintarLogin(){
+    var ov = document.getElementById('ac-login-ov');
+    if(!ov) return;
+    if(yaEntro()){ ov.style.display='none'; return; }
+    ov.style.display='flex';
+    var i = document.getElementById('ac-pwd'); if(i) i.focus();
+  }
+  window.intentarLoginClientes = function(){
+    try{
+      var p = (document.getElementById('ac-pwd').value||'').trim();
+      var err = document.getElementById('ac-login-err');
+      if(p !== 'casa1300'){ if(err) err.style.display='block'; return; }
+      if(err) err.style.display='none';
+      try{ localStorage.setItem('lavobcn_clientes_sesion','1'); }catch(e){}
+      document.getElementById('ac-login-ov').style.display='none';
+    }catch(e){ console.warn('[login clientes]', e); }
+  };
+  if(document.readyState !== 'loading') pintarLogin();
+  else document.addEventListener('DOMContentLoaded', pintarLogin);
+})();
+</script>
+
 <div class="head">
   <div>
     <h1>🏨 Clientes Corporativos</h1>

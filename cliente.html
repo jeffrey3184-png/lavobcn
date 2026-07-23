@@ -315,7 +315,9 @@ window.addEventListener('unhandledrejection', function(e){ e.preventDefault(); }
     try{
       var p = document.getElementById('cliente-pwd').value.trim();
       var err = document.getElementById('cliente-login-err');
-      if(p !== 'casa1300'){ if(err) err.style.display='block'; return; }
+      // Clave EXCLUSIVA de clientes (distinta de la interna del equipo).
+      // Para cambiarla en el futuro, edita solo esta línea.
+      if(p !== 'lavo2026'){ if(err) err.style.display='block'; return; }
       if(err) err.style.display='none';
       try{ localStorage.setItem('lavobcn_cliente_sesion', '1'); }catch(e){}
       var lo = document.getElementById('cliente-login-ov');
