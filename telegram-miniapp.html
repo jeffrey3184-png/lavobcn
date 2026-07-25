@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LavoBCN · Elegir prendas</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  body{font-family:-apple-system,sans-serif;background:#0d1117;color:#e2e8f0;padding:16px;margin:0;}
+  h1{font-size:18px;margin:0 0 16px;}
+  .item{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #232c39;}
+  .item .nombre{font-size:15px;}
+  .item .precio{color:#8b949e;font-size:13px;}
+  .cant{display:flex;align-items:center;gap:10px;}
+  .cant button{width:32px;height:32px;border-radius:8px;border:1px solid #232c39;background:#161b22;color:#fff;font-size:16px;}
+  .cant span{min-width:18px;text-align:center;}
+  #total{position:sticky;bottom:0;background:#0d1117;padding:14px 0;border-top:1px solid #232c39;margin-top:16px;}
+  #total b{font-size:18px;}
+  #enviar{width:100%;padding:14px;border:none;border-radius:12px;background:#10b981;color:#04241a;font-weight:800;font-size:15px;margin-top:10px;}
+</style>
+</head>
+<body>
+<h1>🧺 Elige tus prendas</h1>
+<div id="lista"></div>
+<div id="total">Total: <b id="totalVal">0.00€</b></div>
+<button id="enviar" onclick="enviar()">Confirmar selección</button>
+
+<script>
+// Fase 6 · Telegram Mini App — reutiliza el mismo catálogo real que el Worker (PRECIOS)
+// y que cliente.html. Se abre DENTRO del chat de Telegram (WebApp), no es una página aparte.
+const PRECIOS = {
+  camisa:4.80, pantalon:7.90, blusa:6.40, falda:7.90, polo:5.50,
+  jersey_fino:7.00, jersey_grueso:8.90, americana:9.40,
+  abrigo:14.70, abrigo_corto:11.80, abrigo_plumas:17.20,
+  vestido:11.70, traje:15.10, edredon_sint:24.40, edredon_plumas:28.60
+};
+const NOMBRES = {
+  camisa:"Camisa", pantalon:"Pantalón", blusa:"Blusa", falda:"Falda", polo:"Polo",
+  jersey_fino:"Jersey fino", jersey_grueso:"Jersey grueso", americana:"Americana",
+  abrigo:"Abrigo", abrigo_corto:"Abrigo corto", abrigo_plumas:"Abrigo de plumas",
+  vestido:"Vestido", traje:"Traje", edredon_sint:"Edredón sintético", edredon_plumas:"Edredón de plumas"
+};
+
+const cantidades = {};
+Object.keys(PRECIOS).forEach(k => cantidades[k] = 0);
+
+function pintar(){
+  const cont = document.getElementById('lista');
+  cont.innerHTML = Object.keys(PRECIOS).map(k => `
+    <div class="item">
+      <div><div class="nombre">${NOMBRES[k]}</div><div class="precio">${PRECIOS[k].toFixed(2)}€</div></div>
+      <div class="cant">
+        <button onclick="cambiar('${k}',-1)">−</button>
+        <span id="c-${k}">${cantidades[k]}</span>
+        <button onclick="cambiar('${k}',1)">+</button>
+      </div>
+    </div>`).join('');
+  actualizarTotal();
+}
+function cambiar(k, delta){
+  cantidades[k] = Math.max(0, cantidades[k] + delta);
+  document.getElementById('c-'+k).textContent = cantidades[k];
+  actualizarTotal();
+}
+function actualizarTotal(){
+  let t = 0;
+  Object.keys(cantidades).forEach(k => t += cantidades[k] * PRECIOS[k]);
+  document.getElementById('totalVal').textContent = t.toFixed(2) + '€';
+}
+function enviar(){
+  const seleccion = {};
+  Object.keys(cantidades).forEach(k => { if (cantidades[k] > 0) seleccion[k] = cantidades[k]; });
+  if (Object.keys(seleccion).length === 0) { alert('Elige al menos una prenda'); return; }
+  // Envía la selección de vuelta al bot (Telegram entrega esto como un mensaje al Worker)
+  if (window.Telegram && window.Telegram.WebApp) {
+    Telegram.WebApp.sendData(JSON.stringify({ tipo:'seleccion_prendas', prendas: seleccion }));
+    Telegram.WebApp.close();
+  } else {
+    alert('Esta pantalla solo funciona dentro de Telegram.');
+  }
+}
+if (window.Telegram && window.Telegram.WebApp) Telegram.WebApp.ready();
+pintar();
+</script>
+</body>
+</html>

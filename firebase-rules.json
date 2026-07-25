@@ -2,32 +2,87 @@
   "rules": {
     ".read": true,
     ".write": true,
-
     "pedidos": {
-      ".indexOn": ["estado", "riderKey", "tipo", "ts"]
+      ".indexOn": [
+        "estado",
+        "riderKey",
+        "tipo",
+        "ts",
+        "tel"
+      ]
     },
-
     "despachos": {
-      ".indexOn": ["estado", "riderKey", "ts"]
+      ".indexOn": [
+        "estado",
+        "riderKey",
+        "ts"
+      ]
     },
-
     "viajes": {
-      ".indexOn": ["estado", "riderKey", "ts"]
+      ".indexOn": [
+        "estado",
+        "riderKey",
+        "ts"
+      ]
     },
-
     "autosave": {
-      "rider":    { ".read": true, ".write": true },
-      "despacho": { ".read": true, ".write": true },
-      "cliente":  { ".read": true, ".write": true }
+      "rider": {
+        ".read": true,
+        ".write": true
+      },
+      "despacho": {
+        ".read": true,
+        ".write": true
+      },
+      "cliente": {
+        ".read": true,
+        ".write": true
+      }
     },
-
     "riders": {
-      ".indexOn": ["conectado", "userKey"]
+      ".indexOn": [
+        "conectado",
+        "userKey"
+      ]
     },
-
     "kpi_params": {
       ".read": true,
       ".write": true
+    },
+    "clientes_corporativos": {
+      ".indexOn": [
+        "telefono"
+      ]
+    },
+    "perfiles": {
+      ".indexOn": [
+        "telegram_chat_id"
+      ]
+    },
+    "admin_staff": {
+      ".read": true,
+      ".write": false
+    },
+    "despacho_staff": {
+      ".read": true,
+      ".write": false
+    },
+    "riders_estado": {
+      ".read": true,
+      ".write": true,
+      "$rider": {
+        "telegram_chat_id": {
+          ".write": false
+        }
+      }
+    },
+    "derivaciones": {
+      ".read": true,
+      ".write": false
+    },
+    "rate_limit": {
+      ".read": false,
+      ".write": false
     }
   }
 }
