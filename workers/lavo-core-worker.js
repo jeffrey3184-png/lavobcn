@@ -23,14 +23,14 @@
 //  MÓDULOS — activa/desactiva aquí. Ver README.md para el orden.
 // ═══════════════════════════════════════════════════════════════
 const MODULOS = {
-   WHATSAPP:                    true,
-  TELEGRAM_CLIENTE:            true,
-  TELEGRAM_RIDER:              true,
-  TELEGRAM_DESPACHO:           true,
-  TELEGRAM_JEFFREY:            true,
-  TELEGRAM_ADMIN:              true,
-  INNOVACION_RESUMEN_NOCTURNO: false,
-  INNOVACION_VISION_ENTREGA:   false,
+  WHATSAPP:                    true,   // Fase 0 · Lavo Assistant por WhatsApp (ya diseñado en v1.0.5)
+  TELEGRAM_CLIENTE:            false,  // Fase 1 · Lavo Assistant por Telegram
+  TELEGRAM_RIDER:              false,  // Fase 2 · Riders operan desde Telegram
+  TELEGRAM_DESPACHO:           false,  // Fase 3 · Grupo de despacho en Telegram
+  TELEGRAM_JEFFREY:            false,  // Fase 4 · Derivaciones enriquecidas a Jeffrey
+  TELEGRAM_ADMIN:              false,  // Fase 5 · Comandos de administración
+  INNOVACION_RESUMEN_NOCTURNO: false,  // Fase 6a · Resumen automático cada noche (requiere Cron Trigger)
+  INNOVACION_VISION_ENTREGA:   false,  // Fase 6b · Verificar fotos de entrega con Claude Vision
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -432,13 +432,43 @@ export default {
       const algunModuloTelegram = MODULOS.TELEGRAM_CLIENTE || MODULOS.TELEGRAM_RIDER ||
         MODULOS.TELEGRAM_DESPACHO || MODULOS.TELEGRAM_JEFFREY || MODULOS.TELEGRAM_ADMIN;
       if (!algunModuloTelegram) return new Response("ok", { status: 200 });
-// PRUEBA TEMPORAL: desactivar la comprobación del secreto
-// const secretoRecibido = request.headers.get("X-Telegram-Bot-Api-Secret-Token");
-// if (!env.TELEGRAM_WEBHOOK_SECRET || secretoRecibido !== env.TELEGRAM_WEBHOOK_SECRET) {
-//   logSeguridad("telegram_secreto_invalido", {});
-//   return new Response("Forbidden", { status: 401 });
-// }// no se procesa nada
-      
+
+      const secretoRecibido = request.headers.get("X-Telegram-Bot-Api-Secret-Token");
+      const secretoEsperado = env.TELEGRAM_WEBHOOK_SECRET;
+
+      // DIAGNÓSTICO: identifica CUÁL de las dos condiciones falla, sin exponer
+      // el secreto (solo longitudes y primeros 3 caracteres).
+      if (!secretoEsperado) {
+        logSeguridad("telegram_401_falta_secreto_en_cloudflare", {
+          ruta: url.pathname,
+          metodo: request.method,
+          recibido_existe: !!secretoRecibido,
+          recibido_longitud: secretoRecibido ? secretoRecibido.length : 0,
+          causa: "TELEGRAM_WEBHOOK_SECRET no esta configurado como Secret en Cloudflare"
+        });
+        return new Response("Forbidden", { status: 401 });
+      }
+      if (!secretoRecibido) {
+        logSeguridad("telegram_401_sin_cabecera", {
+          ruta: url.pathname,
+          metodo: request.method,
+          esperado_longitud: secretoEsperado.length,
+          causa: "Telegram no envio la cabecera. El setWebhook se registro SIN el parametro secret_token"
+        });
+        return new Response("Forbidden", { status: 401 });
+      }
+      if (secretoRecibido !== secretoEsperado) {
+        logSeguridad("telegram_401_secreto_no_coincide", {
+          ruta: url.pathname,
+          metodo: request.method,
+          recibido_longitud: secretoRecibido.length,
+          esperado_longitud: secretoEsperado.length,
+          recibido_inicio: secretoRecibido.slice(0, 3),
+          esperado_inicio: secretoEsperado.slice(0, 3),
+          causa: "El secret_token del setWebhook y el Secret de Cloudflare son distintos"
+        });
+        return new Response("Forbidden", { status: 401 });
+      }
       try {
         const update = await request.json();
         ctx.waitUntil(procesarTelegram(update, env));
