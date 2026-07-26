@@ -438,7 +438,7 @@ export default {
 //   logSeguridad("telegram_secreto_invalido", {});
 //   return new Response("Forbidden", { status: 401 });
 // }// no se procesa nada
-      }
+      
       try {
         const update = await request.json();
         ctx.waitUntil(procesarTelegram(update, env));
