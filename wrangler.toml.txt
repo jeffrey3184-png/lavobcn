@@ -1,0 +1,16 @@
+name = "lavo-core"
+
+main = "workers/lavo-core-worker.js"
+
+compatibility_date = "2026-06-12"
+
+[vars]
+JEFFREY_CHAT_ID = ""
+ADMIN_CHAT_IDS = ""
+DESPACHO_CHAT_IDS = ""
+
+[triggers]
+crons = [
+  "*/1 * * * *",
+  "0 20 * * *"
+]
