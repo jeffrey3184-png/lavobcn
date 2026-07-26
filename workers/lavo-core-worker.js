@@ -389,11 +389,11 @@ export default {
     // ── /test — estado del sistema, qué módulos están activos ──
     if (url.pathname === "/test") {
       const activos = Object.entries(MODULOS).filter(([,v]) => v).map(([k]) => k);
-      return new Response(
-        "LAVO CORE activo (versión consolidada).\nMódulos ON: " + (activos.join(", ") || "ninguno"),
-        { status: 200 }
-      );
-    }
+     return new Response(
+  "LAVO CORE V2 - " + new Date().toISOString() +
+  "\nMódulos ON: " + (activos.join(", ") || "ninguno"),
+  { status: 200 }
+);
 
     // ── WHATSAPP (Fase 0) — mismo path y comportamiento que v1.0.5 + firma ──
     if (MODULOS.WHATSAPP && url.pathname === "/webhook") {
