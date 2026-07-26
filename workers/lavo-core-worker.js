@@ -23,7 +23,6 @@
 //  MÓDULOS — activa/desactiva aquí. Ver README.md para el orden.
 // ═══════════════════════════════════════════════════════════════
 const MODULOS = {
- const MODULOS = {
   WHATSAPP:                    true,
   TELEGRAM_CLIENTE:            true,
   TELEGRAM_RIDER:              true,
