@@ -23,14 +23,15 @@
 //  MÓDULOS — activa/desactiva aquí. Ver README.md para el orden.
 // ═══════════════════════════════════════════════════════════════
 const MODULOS = {
-  WHATSAPP:                    true,   // Fase 0 · Lavo Assistant por WhatsApp (ya diseñado en v1.0.5)
-  TELEGRAM_CLIENTE:            false,  // Fase 1 · Lavo Assistant por Telegram
-  TELEGRAM_RIDER:              false,  // Fase 2 · Riders operan desde Telegram
-  TELEGRAM_DESPACHO:           false,  // Fase 3 · Grupo de despacho en Telegram
-  TELEGRAM_JEFFREY:            false,  // Fase 4 · Derivaciones enriquecidas a Jeffrey
-  TELEGRAM_ADMIN:              false,  // Fase 5 · Comandos de administración
-  INNOVACION_RESUMEN_NOCTURNO: false,  // Fase 6a · Resumen automático cada noche (requiere Cron Trigger)
-  INNOVACION_VISION_ENTREGA:   false,  // Fase 6b · Verificar fotos de entrega con Claude Vision
+ const MODULOS = {
+  WHATSAPP:                    true,
+  TELEGRAM_CLIENTE:            true,
+  TELEGRAM_RIDER:              true,
+  TELEGRAM_DESPACHO:           true,
+  TELEGRAM_JEFFREY:            true,
+  TELEGRAM_ADMIN:              true,
+  INNOVACION_RESUMEN_NOCTURNO: false,
+  INNOVACION_VISION_ENTREGA:   false,
 };
 
 // ═══════════════════════════════════════════════════════════════
