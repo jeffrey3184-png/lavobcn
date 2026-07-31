@@ -1981,7 +1981,7 @@ function confirmarMoto(){
 var _local='', _adr='', _lat=41.3851, _lng=2.1734;
 var uLat=null, uLng=null;
 var AFIL=['Perfect Clean','Tintorería Prim','LavoBCN Mensajería'];
-var PRECIOS={camisa:4.80,pantalon:7.90,blusa:6.40,falda:7.90,polo:5.50,jersey_fino:7.00,jersey_grueso:8.90,americana:9.40,abrigo:14.70,abrigo_corto:11.80,abrigo_plumas:17.20,anorak:13.60,anorak_plumas:15.10,gabardina:14.30,vestido:11.70,vestido_novia:89.50,traje:15.10,traje_lino:16.20,funda_sofa1:20.60,funda_sofa2:32.70,nordica_p:11.30,nordica_g:12.70,edredon_sint:24.40,edredon_plumas:28.60,colcha_p:18.90,colcha_g:21.50,cortinas:4.10,alfombra:14.00,pieles:48.40};
+var PRECIOS={};   /* se rellena desde el Worker (ver cargarPreciosDelServidor) */
 var QTY={camisa:0,pantalon:0,blusa:0,falda:0,polo:0,jersey_fino:0,jersey_grueso:0,americana:0,abrigo:0,abrigo_corto:0,abrigo_plumas:0,anorak:0,anorak_plumas:0,gabardina:0,vestido:0,vestido_novia:0,traje:0,traje_lino:0,funda_sofa1:0,funda_sofa2:0,nordica_p:0,nordica_g:0,edredon_sint:0,edredon_plumas:0,colcha_p:0,colcha_g:0,cortinas:0,alfombra:0,pieles:0};
 var SCREENS=['lav','moto','msg','amz','com','far','sup','hot','flo','per','lic','mov','ped'];
 
@@ -3372,7 +3372,57 @@ window.onerror = function(){ return true; };
 
 <!-- FUNCIONES DE PRENDAS - script limpio sin emojis problemáticos -->
 <script>
-var QTY_PRECIOS={camisa:4.80,pantalon:7.90,blusa:6.40,falda:7.90,polo:5.50,jersey_fino:7.00,jersey_grueso:8.90,americana:9.40,abrigo:14.70,abrigo_corto:11.80,abrigo_plumas:17.20,anorak:13.60,anorak_plumas:15.10,gabardina:14.30,vestido:11.70,vestido_novia:89.50,traje:15.10,traje_lino:16.20,funda_sofa1:20.60,funda_sofa2:32.70,nordica_p:11.30,nordica_g:12.70,edredon_sint:24.40,edredon_plumas:28.60,colcha_p:18.90,colcha_g:21.50,cortinas:4.10,alfombra:14.00,pieles:48.40};
+var QTY_PRECIOS={};  /* se rellena desde el Worker */
+
+/* ─── PRECIOS: EL WORKER ES LA ÚNICA FUENTE DE VERDAD ──────────────────
+   En este archivo NO hay ningún precio escrito a mano. Se piden al Worker
+   al abrir la app y se guarda una copia en el navegador (localStorage).
+
+   - Con conexión      → precios del Worker (y se actualiza la copia)
+   - Sin conexión      → última copia guardada
+   - Primera vez y sin conexión → la app avisa de que no puede cotizar
+
+   Cambiar un precio en el Worker (o en Firebase /precios) lo actualiza en
+   la app, en Telegram y en WhatsApp a la vez.                          */
+var LAVO_CORE_URL = 'https://lavo-core.jeffreelancer31.workers.dev';
+var CACHE_PRECIOS = 'lavobcn_precios_cache';
+
+function aplicarPrecios(precios){
+  if(!precios || !Object.keys(precios).length) return false;
+  PRECIOS = precios;
+  QTY_PRECIOS = precios;
+  try{ if(typeof recalc==='function') recalc(); }catch(e){}
+  try{ if(typeof pintarPrendas==='function') pintarPrendas(); }catch(e){}
+  return true;
+}
+
+(function cargarPreciosDelServidor(){
+  /* 1. Copia guardada: la app puede cotizar de inmediato, incluso sin red */
+  try{
+    var guardado = localStorage.getItem(CACHE_PRECIOS);
+    if(guardado){
+      var c = JSON.parse(guardado);
+      if(c && c.precios) aplicarPrecios(c.precios);
+    }
+  }catch(e){}
+
+  /* 2. Precios frescos del Worker */
+  try{
+    fetch(LAVO_CORE_URL + '/tarifas')
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(d){
+        if(!d || !d.precios) return;
+        if(aplicarPrecios(d.precios)){
+          try{
+            localStorage.setItem(CACHE_PRECIOS, JSON.stringify({
+              precios: d.precios, unidades: d.unidades || {}, ts: Date.now()
+            }));
+          }catch(e){}
+        }
+      })
+      .catch(function(){ /* sin conexión: se queda con la copia guardada */ });
+  }catch(e){}
+})();
 
 function chgQ(k,d){
   if(typeof QTY==='undefined') return;
