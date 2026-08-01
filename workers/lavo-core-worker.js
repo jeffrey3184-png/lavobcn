@@ -44,25 +44,329 @@ const PLATAFORMA = "https://lavobcn.pages.dev";
 // Se obtiene escribiéndole a @userinfobot en Telegram desde el móvil de Jeffrey.
 const JEFFREY_TELEGRAM_ID = null;
 
-const PRECIOS = {
-  camisa:4.80, pantalon:7.90, blusa:6.40, falda:7.90, polo:5.50,
-  jersey_fino:7.00, jersey_grueso:8.90, americana:9.40,
-  abrigo:14.70, abrigo_corto:11.80, abrigo_plumas:17.20,
-  anorak:13.60, anorak_plumas:15.10, gabardina:14.30,
-  vestido:11.70, vestido_novia:89.50, traje:15.10, traje_lino:16.20,
-  funda_sofa1:20.60, funda_sofa2:32.70,
-  nordica_p:11.30, nordica_g:12.70,
-  edredon_sint:24.40, edredon_plumas:28.60,
-  colcha_p:18.90, colcha_g:21.50,
-  cortinas:4.10, alfombra:14.00, pieles:48.40
+// ═══════════════════════════════════════════════════════════════
+//  TARIFAS POR LAVANDERÍA
+//  Cada lavandería tiene su propia lista. Para añadir una tercera,
+//  basta con agregar otra entrada aquí — nada más del código cambia.
+//
+//  unidades: prendas que NO se cobran por unidad (m2) o cuyo precio
+//  es orientativo ("desde"). El cálculo las marca para confirmación.
+// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+//  LAVANDERÍAS — UNA FICHA COMPLETA POR CADA UNA
+//
+//  Toda la información de una lavandería vive AQUÍ y en ningún otro sitio:
+//  precios, cobertura, horarios, capacidad, coordenadas y estado.
+//
+//  PARA AÑADIR UNA LAVANDERÍA NUEVA: copia una ficha, cambia los datos.
+//  No hay que tocar ninguna función. El motor de selección, el cálculo de
+//  precios y los endpoints la incorporan automáticamente.
+//
+//  CAMPOS NEUTROS (null): significan "sin restricción", nunca descartan.
+//    horarios: null         → siempre disponible
+//    zonas_cobertura: null  → cubre cualquier zona
+//    servicios: null        → acepta cualquier servicio
+//    capacidad_diaria: null → sin límite de pedidos
+//  Rellénalos cuando tengas los datos reales y el motor los usará solo.
+// ═══════════════════════════════════════════════════════════════
+const LAVANDERIAS = {
+
+  perfect_clean: {
+    id: "perfect_clean",
+    nombre: "Perfect Clean",
+    estado: "activa",                      // activa | pausada | inactiva
+    direccion: "Pg. del Taulat, 279A · 08019",
+    coordenadas: { lat: 41.4025, lng: 2.2085 },
+    zonas_cobertura: null,                 // pendiente de definir
+    horarios: null,                        // pendiente de definir
+    capacidad_diaria: null,                // pendiente de definir
+    tiempo_estimado_horas: 72,
+    prioridad: 5,                          // 1-10 (desempate comercial)
+    servicios: null,                       // pendiente de definir
+    precios: {
+      camisa:4.80, pantalon:7.90, blusa:6.40, falda:7.90, polo:5.50,
+      jersey_fino:7.00, jersey_grueso:8.90, americana:9.40,
+      abrigo:14.70, abrigo_corto:11.80, abrigo_plumas:17.20,
+      anorak:13.60, anorak_plumas:15.10, gabardina:14.30,
+      vestido:11.70, vestido_novia:89.50, traje:15.10, traje_lino:16.20,
+      funda_sofa1:20.60, funda_sofa2:32.70,
+      nordica_p:11.30, nordica_g:12.70,
+      edredon_sint:24.40, edredon_plumas:28.60,
+      colcha_p:18.90, colcha_g:21.50,
+      cortinas:4.10, alfombra:14.00, pieles:48.40
+    },
+    unidades: {}
+  },
+
+  tintoreria_prim: {
+    id: "tintoreria_prim",
+    nombre: "Tintorería Prim",
+    estado: "activa",
+    direccion: "Carrer del Maresme, 60",
+    coordenadas: { lat: 41.4145, lng: 2.2055 },
+    zonas_cobertura: null,
+    horarios: null,
+    capacidad_diaria: null,
+    tiempo_estimado_horas: 72,
+    prioridad: 5,
+    servicios: null,
+    precios: {
+      // Abrigos
+      abrigo:13.60, abrigo_plumas:19.90, americana:9.55,
+      anorak:12.70, anorak_plumas:15.35, gabardina:13.25,
+      chaleco:5.70, chaleco_plumas:9.90,
+      // Ropa
+      blusa:5.95, camisa:4.75, corbata:3.50, falda_corta:5.70,
+      jersey_fino:6.45, jersey_grueso:8.20, polo_manga_larga:5.10,
+      pantalon_tejano:5.80, traje:20.00,
+      vestido:11.70, vestido_infantil:10.20, vestido_novia:89.50,
+      // Alfombras y cortinas
+      alfombra:14.95, alfombra_piel:19.80,
+      cortina_mediana:18.00, cortina_grande:30.00,
+      // Ropa de cama
+      edredon_plumas:30.00, edredon_sint_matrimonio:22.60,
+      edredon_sint_individual:17.90,
+      colcha_p:11.80, colcha_g:17.50,
+      nordica_p:10.50, nordica_g:11.80,
+      sabana_encimera:4.65, sabana_bajera:4.25,
+      // Fundas
+      funda_sofa:19.05, funda_almohada:2.20,
+      // Coladas
+      colada_pequena:15.90, colada_mediana:25.00, colada_grande:40.00
+    },
+    unidades: {
+      alfombra: "m2",
+      alfombra_piel: "m2",
+      funda_sofa: "desde",
+      funda_almohada: "desde"
+    }
+  }
+
 };
+
+// Lavandería cuya tarifa se muestra como referencia en la app cuando aún
+// no hay asignación. El importe definitivo lo calcula el sistema al asignar.
+// Multiplicador del servicio exprés (mismo valor que usa la app).
 const MULT_EXPRES = 1.5;
 
-const LAVANDERIAS = [
-  { id:"pc",   nombre:"Perfect Clean",   dir:"Pg. del Taulat, 279A · 08019", lat:41.4025, lng:2.2085 },
-  { id:"prim", nombre:"Tintorería Prim", dir:"Carrer del Maresme, 60",       lat:41.4145, lng:2.2055 }
-];
+const LAVANDERIA_REFERENCIA = "perfect_clean";
+
+// Diferencia mínima de distancia (km) para considerar que una está
+// claramente más cerca que otra.
 const MARGEN_ASIGNACION_KM = 0.4;
+
+// Pesos del motor de selección. Ampliar criterios = añadir una línea aquí
+// y su función de cálculo en calcularScore().
+const PESOS_SCORE = {
+  distancia:  30,
+  capacidad:  25,
+  tiempo:     20,
+  prioridad:  15,
+  calidad:    10
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  MOTOR DE SELECCIÓN — filtros duros + puntuación
+//  Igual con 2 lavanderías que con 100. Ampliar criterios = añadir un peso
+//  en PESOS_SCORE y su línea en calcularScore().
+//  Los campos null significan "sin restricción": nunca descartan.
+// ═══════════════════════════════════════════════════════════════
+function estaOperativa(lav) { return lav.estado === "activa"; }
+
+function estaAbierta(lav, ahora) {
+  if (!lav.horarios) return true;
+  const dias = ["domingo","lunes","martes","miercoles","jueves","viernes","sabado"];
+  const d = ahora || new Date();
+  const tramo = lav.horarios[dias[d.getDay()]];
+  if (!tramo) return false;
+  const h = d.getHours();
+  return h >= tramo[0] && h < tramo[1];
+}
+
+function cubreZona(lav, direccion) {
+  if (!lav.zonas_cobertura || !lav.zonas_cobertura.length) return true;
+  const d = normalizarTexto(direccion);
+  return lav.zonas_cobertura.some(z => d.includes(normalizarTexto(z)));
+}
+
+function ofreceServicio(lav, servicio) {
+  if (!lav.servicios || !lav.servicios.length) return true;
+  if (!servicio) return true;
+  return lav.servicios.includes(servicio);
+}
+
+function tieneCapacidad(lav, cargaActual) {
+  if (lav.capacidad_diaria === null || lav.capacidad_diaria === undefined) return true;
+  return cargaActual < lav.capacidad_diaria;
+}
+
+function calcularScore(lav, ctx) {
+  const p = PESOS_SCORE;
+  const detalle = {};
+  detalle.distancia = (ctx.distanciaKm === null)
+    ? p.distancia / 2
+    : p.distancia * (1 - Math.min(ctx.distanciaKm / (ctx.maxDistancia || 1), 1));
+  const ocupacion = ctx.maxCarga > 0 ? ctx.cargaActual / ctx.maxCarga : 0;
+  detalle.capacidad = p.capacidad * (1 - Math.min(ocupacion, 1));
+  const horas = lav.tiempo_estimado_horas || 72;
+  detalle.tiempo = p.tiempo * Math.max(0, Math.min(1, (144 - horas) / 144));
+  detalle.prioridad = p.prioridad * ((lav.prioridad || 5) / 10);
+  const cal = (typeof lav.calidad_media === "number") ? lav.calidad_media : 3;
+  detalle.calidad = p.calidad * (cal / 5);
+  const total = Object.values(detalle).reduce((a,b) => a+b, 0);
+  Object.keys(detalle).forEach(k => detalle[k] = Math.round(detalle[k]*10)/10);
+  return { total: Math.round(total*10)/10, detalle };
+}
+
+async function seleccionarLavanderia(opciones) {
+  const { direccion, servicio } = opciones || {};
+  const carga = {};
+  try {
+    const r = await fetch(`${FIREBASE}/pedidos.json`);
+    const data = await r.json() || {};
+    for (const ped of Object.values(data)) {
+      if (!ped || !ped.local) continue;
+      if (["entregado","cancelado"].includes(ped.estado)) continue;
+      carga[ped.local] = (carga[ped.local] || 0) + 1;
+    }
+  } catch (e) { logError("seleccionarLavanderia_carga", e.message); }
+
+  const coords = await geocodificarAprox(direccion);
+  const candidatas = [];
+  const descartadas = [];
+
+  for (const lav of Object.values(LAVANDERIAS)) {
+    const cargaActual = carga[lav.nombre] || 0;
+    if (!estaOperativa(lav))               { descartadas.push({ id:lav.id, motivo:"no_activa" }); continue; }
+    if (!estaAbierta(lav))                 { descartadas.push({ id:lav.id, motivo:"cerrada" }); continue; }
+    if (!cubreZona(lav, direccion))        { descartadas.push({ id:lav.id, motivo:"fuera_de_zona" }); continue; }
+    if (!ofreceServicio(lav, servicio))    { descartadas.push({ id:lav.id, motivo:"no_ofrece_servicio" }); continue; }
+    if (!tieneCapacidad(lav, cargaActual)) { descartadas.push({ id:lav.id, motivo:"sin_capacidad" }); continue; }
+    candidatas.push({
+      lav, cargaActual,
+      distanciaKm: coords ? distanciaKm(coords.lat, coords.lng, lav.coordenadas.lat, lav.coordenadas.lng) : null
+    });
+  }
+
+  if (!candidatas.length) {
+    const ultima = Object.values(LAVANDERIAS).find(l => l.estado === "activa") || Object.values(LAVANDERIAS)[0];
+    return { lavanderia: ultima, score: 0,
+      criterios: { motivo: "ninguna_candidata_paso_los_filtros" },
+      descartadas, confianza: "baja" };
+  }
+
+  const maxCarga = Math.max(...candidatas.map(c => c.cargaActual), 1);
+  const dists = candidatas.map(c => c.distanciaKm).filter(d => d !== null);
+  const maxDistancia = dists.length ? Math.max(...dists, 0.1) : 1;
+
+  const puntuadas = candidatas.map(c => {
+    const s = calcularScore(c.lav, { distanciaKm:c.distanciaKm, cargaActual:c.cargaActual, maxCarga, maxDistancia });
+    return { ...c, score:s.total, detalle:s.detalle };
+  }).sort((a,b) => b.score - a.score || (b.lav.prioridad||0) - (a.lav.prioridad||0));
+
+  const g = puntuadas[0], segunda = puntuadas[1];
+  let confianza = "alta";
+  if (!coords) confianza = "baja";
+  else if (segunda && Math.abs(g.score - segunda.score) < 5) confianza = "media";
+
+  return {
+    lavanderia: g.lav,
+    score: g.score,
+    criterios: {
+      distancia_km: g.distanciaKm !== null ? Math.round(g.distanciaKm*100)/100 : null,
+      carga_actual: g.cargaActual,
+      capacidad_diaria: g.lav.capacidad_diaria,
+      tiempo_estimado_horas: g.lav.tiempo_estimado_horas,
+      prioridad: g.lav.prioridad,
+      desglose_puntos: g.detalle,
+      candidatas: puntuadas.map(c => ({ id:c.lav.id, score:c.score }))
+    },
+    descartadas,
+    confianza
+  };
+}
+
+async function registrarAsignacion(datos) {
+  try {
+    const id = "asg_" + Date.now() + "_" + Math.random().toString(36).slice(2,6);
+    await fetch(`${FIREBASE}/asignaciones_log/${id}.json`, {
+      method:"PUT", headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ ...datos, ts: Date.now(), fecha: new Date().toISOString() })
+    });
+  } catch (e) { logError("registrarAsignacion", e.message); }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  RESOLUCIÓN DE LAVANDERÍA
+//  Acepta el id interno ("tintoreria_prim"), el nombre visible
+//  ("Tintorería Prim") o variantes sin tildes/mayúsculas. Necesario para
+//  leer pedidos antiguos, que guardan el nombre como texto.
+// ═══════════════════════════════════════════════════════════════
+function normalizarTexto(s) {
+  return String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+}
+
+function resolverLavanderia(identificador) {
+  if (!identificador) return null;
+  const buscado = normalizarTexto(identificador);
+  for (const lav of Object.values(LAVANDERIAS)) {
+    if (buscado === normalizarTexto(lav.id)) return lav;
+    if (buscado === normalizarTexto(lav.nombre)) return lav;
+    if (buscado.includes(normalizarTexto(lav.nombre))) return lav;
+  }
+  return null;
+}
+
+// Alias por compatibilidad: el resto del código la llamaba así.
+function resolverTarifa(identificador) {
+  const lav = resolverLavanderia(identificador);
+  if (!lav) return null;
+  return { clave: lav.id, nombre: lav.nombre, precios: lav.precios, unidades: lav.unidades || {} };
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  PRECIOS DESDE FIREBASE (/precios) CON RESPALDO EN LA FICHA
+//  Permite cambiar tarifas desde la consola sin desplegar código.
+//  Si Firebase falla, usa los precios de la ficha: nunca lista vacía.
+// ═══════════════════════════════════════════════════════════════
+function esListaDePreciosValida(obj) {
+  if (!obj || typeof obj !== "object") return false;
+  return Object.values(obj).some(v => typeof v === "number" && v > 0);
+}
+
+async function obtenerPreciosReferencia() {
+  const ficha = LAVANDERIAS[LAVANDERIA_REFERENCIA] || Object.values(LAVANDERIAS)[0];
+  const respaldo = { precios: ficha.precios, unidades: ficha.unidades || {}, origen: "respaldo_codigo" };
+
+  try {
+    const r = await fetch(`${FIREBASE}/precios.json`);
+    if (!r.ok) {
+      logError("obtenerPreciosReferencia", `Firebase HTTP ${r.status} — usando respaldo`);
+      return respaldo;
+    }
+    const data = await r.json();
+    if (!data || typeof data !== "object") return respaldo;
+
+    // Formato A: por lavandería
+    const porLavanderia = data[LAVANDERIA_REFERENCIA] || data[Object.keys(LAVANDERIAS)[0]];
+    if (porLavanderia && typeof porLavanderia === "object") {
+      const precios = porLavanderia.precios || porLavanderia;
+      if (esListaDePreciosValida(precios)) {
+        return { precios, unidades: porLavanderia.unidades || ficha.unidades || {}, origen: "firebase" };
+      }
+    }
+    // Formato B: lista plana
+    if (esListaDePreciosValida(data)) {
+      return { precios: data, unidades: ficha.unidades || {}, origen: "firebase" };
+    }
+
+    logError("obtenerPreciosReferencia", "Formato de /precios no reconocido — usando respaldo");
+    return respaldo;
+  } catch (e) {
+    logError("obtenerPreciosReferencia", e.message + " — usando respaldo");
+    return respaldo;
+  }
+}
 
 const ESTADOS_LEGIBLES = {
   pendiente:"Estamos asignando un rider a su recogida",
@@ -222,14 +526,32 @@ Nunca inventes tiempos. Usa siempre las herramientas del sistema.
 Al inicio de una conversación usa identificar_usuario para saber con quién hablas
 y no volver a pedir datos que ya conocemos.
 
-# LAVANDERÍA
+# LAVANDERÍA Y PRECIOS
 
-Nunca decidas qué lavandería realizará el servicio. Eso lo decide el sistema.
-Usa la herramienta asignar_lavanderia. Si aún no está asignada responde:
-"Su solicitud ha sido registrada correctamente.
-En breve confirmaremos la planificación de la recogida."
+El cliente NUNCA elige la tintorería. NUNCA le preguntes su preferencia.
+El cliente NUNCA debe conocer el nombre de la tintorería asignada.
+La decide siempre el sistema, y en última instancia el despacho.
 
-Nunca comuniques al cliente el nombre de la lavandería asignada.
+Cada tintorería tiene SU PROPIA TARIFA: el mismo artículo puede costar
+distinto en una que en otra. Por eso el precio depende de la asignación.
+
+ORDEN OBLIGATORIO al dar un precio:
+1. Llama a asignar_lavanderia con la dirección de recogida.
+2. Toma el nombre que devuelva.
+3. Llama a calcular_precio pasándole ese nombre.
+4. Da al cliente SOLO el importe. Nunca digas de dónde sale la tarifa.
+
+Si por lo que sea no tienes tintorería asignada, NO INVENTES NINGÚN PRECIO.
+Responde exactamente:
+"Estoy verificando la mejor opción para su servicio. En unos instantes le
+confirmo el presupuesto."
+
+El pedido se crea igualmente, y el sistema enviará el presupuesto en cuanto
+el despacho complete la asignación.
+
+Si el cliente pregunta a qué tintorería irá su ropa:
+"Trabajamos con tintorerías profesionales de la zona. Nos encargamos nosotros
+de asignar la más adecuada para su servicio."
 
 # JEFFREY
 
@@ -319,12 +641,13 @@ const TOOLS = [
   },
   {
     name: "calcular_precio",
-    description: "Calcula el precio exacto con las tarifas reales. Nunca estimes precios sin usar esta herramienta.",
+    description: "Calcula el precio exacto con las tarifas reales de cada tintorería. Nunca estimes precios sin usar esta herramienta. Cada tintorería tiene su propia lista, así que el precio puede variar entre ellas.",
     input_schema: {
       type:"object",
       properties:{
-        prendas:{ type:"object", description:"Objeto con prenda:cantidad. Claves válidas: camisa, pantalon, blusa, falda, polo, jersey_fino, jersey_grueso, americana, abrigo, abrigo_corto, abrigo_plumas, anorak, anorak_plumas, gabardina, vestido, vestido_novia, traje, traje_lino, funda_sofa1, funda_sofa2, nordica_p, nordica_g, edredon_sint, edredon_plumas, colcha_p, colcha_g, cortinas, alfombra, pieles" },
-        expres:{ type:"boolean", description:"true si el cliente quiere servicio exprés" }
+        prendas:{ type:"object", description:"Objeto con prenda:cantidad. Claves de Perfect Clean: camisa, pantalon, blusa, falda, polo, jersey_fino, jersey_grueso, americana, abrigo, abrigo_corto, abrigo_plumas, anorak, anorak_plumas, gabardina, vestido, vestido_novia, traje, traje_lino, funda_sofa1, funda_sofa2, nordica_p, nordica_g, edredon_sint, edredon_plumas, colcha_p, colcha_g, cortinas, alfombra, pieles. Claves adicionales de Tintorería Prim: chaleco, chaleco_plumas, corbata, falda_corta, polo_manga_larga, pantalon_tejano, vestido_infantil, alfombra_piel, cortina_mediana, cortina_grande, edredon_sint_matrimonio, edredon_sint_individual, sabana_encimera, sabana_bajera, funda_sofa, funda_almohada, colada_pequena, colada_mediana, colada_grande. En alfombra y alfombra_piel la cantidad son METROS CUADRADOS, no unidades." },
+        expres:{ type:"boolean", description:"true si el cliente quiere servicio exprés" },
+        lavanderia:{ type:"string", description:"Tintorería para la tarifa: 'perfect_clean' o 'tintoreria_prim'. Si NO lo indicas, la herramienta devuelve el precio de ambas para que preguntes la preferencia al cliente." }
       },
       required:["prendas"]
     }
@@ -389,11 +712,41 @@ export default {
     // ── /test — estado del sistema, qué módulos están activos ──
     if (url.pathname === "/test") {
       const activos = Object.entries(MODULOS).filter(([,v]) => v).map(([k]) => k);
-     return new Response(
-  "LAVO CORE V2 - " + new Date().toISOString() +
-  "\nMódulos ON: " + (activos.join(", ") || "ninguno"),
-  { status: 200 }
-);
+      return new Response(
+        "LAVO CORE V2 - " + new Date().toISOString() +
+        "\nMódulos ON: " + (activos.join(", ") || "ninguno"),
+        { status: 200 }
+      );
+    }
+
+    // ── TARIFAS (público, solo lectura) ────────────────────────────
+    // La app web pide aquí los precios en lugar de tenerlos escritos dentro.
+    // Así hay UNA sola fuente de verdad: cambiar un precio en TARIFAS lo
+    // cambia en Telegram, WhatsApp y la app a la vez.
+    // Lleva CORS porque lo consulta el navegador desde lavobcn.pages.dev.
+    if (url.pathname === "/tarifas") {
+      const cabeceras = {
+        "Content-Type": "application/json; charset=utf-8",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, OPTIONS",
+        "Cache-Control": "public, max-age=300"   // 5 min de caché
+      };
+      if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cabeceras });
+
+      // Los precios se leen de Firebase (/precios) para poder cambiarlos sin
+      // tocar código. Si Firebase no responde, se usa el objeto TARIFAS como
+      // respaldo — el endpoint NUNCA devuelve una lista vacía.
+      const tarifa = await obtenerPreciosReferencia();
+      return new Response(JSON.stringify({
+        precios: tarifa.precios,
+        unidades: tarifa.unidades || {},
+        multiplicador_expres: MULT_EXPRES,
+        es_referencia: true,
+        origen: tarifa.origen,        // "firebase" o "respaldo_codigo"
+        aviso: "Precio orientativo. El importe definitivo se confirma al asignar el servicio.",
+        actualizado: Date.now()
+      }), { status: 200, headers: cabeceras });
+    }
 
     // ── WHATSAPP (Fase 0) — mismo path y comportamiento que v1.0.5 + firma ──
     if (MODULOS.WHATSAPP && url.pathname === "/webhook") {
@@ -488,6 +841,9 @@ export default {
     if (MODULOS.TELEGRAM_RIDER || MODULOS.TELEGRAM_DESPACHO) {
       ctx.waitUntil(notificarPedidosPendientesTelegram(env));
     }
+    // Presupuesto automático: pedidos que se crearon sin tarifa y que el
+    // despacho ya ha asignado a una tintorería.
+    ctx.waitUntil(enviarPresupuestosPendientes(env));
     if (MODULOS.INNOVACION_RESUMEN_NOCTURNO) {
       ctx.waitUntil(resumenNocturno(env));
     }
@@ -689,8 +1045,8 @@ async function ejecutarHerramienta(nombre, input, identidad, env) {
   try {
     if (nombre === "identificar_usuario")     return await hIdentificar(identidad);
     if (nombre === "buscar_pedidos_cliente")  return await hBuscarPedidos(identidad, input.limite || 3);
-    if (nombre === "calcular_precio")         return hCalcularPrecio(input.prendas, input.expres);
-    if (nombre === "asignar_lavanderia")      return await hAsignarLavanderia(input.direccion);
+    if (nombre === "calcular_precio")         return hCalcularPrecio(input.prendas, input.expres, input.lavanderia);
+    if (nombre === "asignar_lavanderia")      return await hAsignarLavanderia(input.direccion, env);
     if (nombre === "consultar_estado_pedido") return await hConsultarEstado(input.ref);
     if (nombre === "crear_pedido")            return await hCrearPedido(input, identidad, env);
     if (nombre === "derivar_a_jeffrey")       return await hDerivar(input, identidad, env);
@@ -784,49 +1140,130 @@ async function hBuscarPedidos(identidad, limite) {
   ).join("\n");
 }
 
-function hCalcularPrecio(prendas, expres) {
+function hCalcularPrecio(prendas, expres, lavanderia) {
   if (!prendas || typeof prendas !== "object") return "Necesito saber qué prendas son.";
-  let total = 0; const detalle = [];
-  for (const [k, cant] of Object.entries(prendas)) {
-    const precio = PRECIOS[k];
-    if (precio === undefined) { detalle.push(`${k}: no está en el catálogo`); continue; }
-    const n = Number(cant) || 0;
-    total += precio * n;
-    detalle.push(`${n} x ${k.replace(/_/g," ")} = ${(precio*n).toFixed(2)}€`);
+
+  const tarifa = resolverTarifa(lavanderia);
+
+  // Sin tintorería asignada NO se calcula precio. Cada tintorería tiene su
+  // propia tarifa, así que dar un importe sin saber cuál sería inventárselo.
+  // El cliente nunca elige ni conoce la tintorería: la decide el sistema.
+  if (!tarifa) {
+    return "SIN TARIFA: todavía no hay tintorería asignada. Llama primero a " +
+      "asignar_lavanderia y vuelve a calcular con el nombre que devuelva. " +
+      "Si aun así no puedes, NO inventes ningún importe. Responde al cliente: " +
+      "\"Estoy verificando la mejor opción para su servicio. En unos instantes le confirmo el presupuesto.\"";
   }
+
+  let total = 0;
+  const detalle = [];
+  const avisos = [];
+
+  for (const [k, cant] of Object.entries(prendas)) {
+    const precio = tarifa.precios[k];
+
+    // Prenda no disponible en esta tarifa: aviso controlado, nunca rompe
+    if (precio === undefined) {
+      const otras = Object.values(LAVANDERIAS)
+        .filter(l => l.id !== tarifa.clave && l.precios[k] !== undefined)
+        .map(l => l.nombre);
+      avisos.push(otras.length
+        ? `"${k.replace(/_/g," ")}" no está en la tarifa de ${tarifa.nombre}, pero sí en ${otras.join(" y ")}.`
+        : `"${k.replace(/_/g," ")}" no está en nuestro catálogo. Consúltalo antes de dar precio.`);
+      continue;
+    }
+
+    const n = Number(cant) || 0;
+    if (n <= 0) continue;
+
+    const unidad = tarifa.unidades[k];
+    if (unidad === "m2") {
+      total += precio * n;
+      detalle.push(`${k.replace(/_/g," ")}: ${n} m² x ${precio.toFixed(2)}€ = ${(precio*n).toFixed(2)}€`);
+      avisos.push(`"${k.replace(/_/g," ")}" se cobra por metro cuadrado — confirma los m² con el cliente.`);
+    } else if (unidad === "desde") {
+      total += precio * n;
+      detalle.push(`${n} x ${k.replace(/_/g," ")} desde ${precio.toFixed(2)}€ = ${(precio*n).toFixed(2)}€`);
+      avisos.push(`"${k.replace(/_/g," ")}" tiene precio DESDE ${precio.toFixed(2)}€ — el final depende del tamaño. Indícalo como estimación.`);
+    } else {
+      total += precio * n;
+      detalle.push(`${n} x ${k.replace(/_/g," ")} = ${(precio*n).toFixed(2)}€`);
+    }
+  }
+
+  if (!detalle.length && avisos.length) {
+    return `No he podido calcular el precio.\n${avisos.join("\n")}`;
+  }
+
   const mult = expres ? MULT_EXPRES : 1;
   const final = total * mult;
-  return `${detalle.join(" · ")}\nSubtotal: ${total.toFixed(2)}€${expres ? ` · Exprés (x${MULT_EXPRES}): ${final.toFixed(2)}€` : ""}\nTOTAL: ${final.toFixed(2)}€ (recogida y entrega incluidas)`;
+  let salida = `Tarifa de ${tarifa.nombre}\n${detalle.join(" · ")}`;
+  salida += `\nSubtotal: ${total.toFixed(2)}€`;
+  if (expres) salida += ` · Exprés (x${MULT_EXPRES}): ${final.toFixed(2)}€`;
+  salida += `\nTOTAL: ${final.toFixed(2)}€ (recogida y entrega incluidas)`;
+  if (avisos.length) salida += `\n\nAVISOS (tenlos en cuenta al responder):\n- ${avisos.join("\n- ")}`;
+  return salida;
 }
 
-async function hAsignarLavanderia(direccion) {
-  const coords = await geocodificarAprox(direccion);
-  if (!coords) {
-    return JSON.stringify({ asignada:null, motivo:"sin_coordenadas", instruccion:"Crea el pedido sin lavandería. Di al cliente: 'Su recogida está registrada. Le confirmamos el horario en breve.'" });
-  }
-  const conDist = LAVANDERIAS.map(l => ({ ...l, km: distanciaKm(coords.lat, coords.lng, l.lat, l.lng) }))
-                             .sort((a,b) => a.km - b.km);
-  let ocupacion = {};
-  try {
-    const r = await fetch(`${FIREBASE}/pedidos.json`);
-    const data = await r.json() || {};
-    for (const p of Object.values(data)) {
-      if (!p || !p.local) continue;
-      if (["entregado","cancelado"].includes(p.estado)) continue;
-      ocupacion[p.local] = (ocupacion[p.local] || 0) + 1;
-    }
-  } catch (e) { logError("hAsignarLavanderia_ocupacion", e.message); }
-  const dif = conDist[1] ? Math.abs(conDist[0].km - conDist[1].km) : 999;
-  if (dif < MARGEN_ASIGNACION_KM) {
-    return JSON.stringify({ asignada:null, motivo:"distancias_similares", instruccion:"Crea el pedido sin lavandería. El despacho decidirá." });
-  }
-  const elegida = conDist[0];
-  return JSON.stringify({
-    asignada: elegida.nombre,
-    distancia_km: elegida.km.toFixed(2),
-    carga_actual: ocupacion[elegida.nombre] || 0,
-    instruccion: "Usa este nombre en el campo lavanderia al crear el pedido. NO se lo comuniques al cliente."
+
+// Asignación de lavandería mediante el motor de selección (filtros + score).
+// SIEMPRE devuelve una lavandería. Registra la decisión en /asignaciones_log
+// y avisa al despacho si la confianza no es alta.
+async function hAsignarLavanderia(direccion, env, contexto) {
+  const r = await seleccionarLavanderia({ direccion, servicio: (contexto && contexto.servicio) || null });
+
+  await registrarAsignacion({
+    pedido_id: (contexto && contexto.pedido_id) || null,
+    lavanderia_id: r.lavanderia.id,
+    lavanderia_nombre: r.lavanderia.nombre,
+    score: r.score,
+    criterios: r.criterios,
+    descartadas: r.descartadas,
+    confianza: r.confianza,
+    direccion: String(direccion || "").slice(0, 80)
   });
+
+  if (r.confianza !== "alta") {
+    const aviso = "\u26a0\ufe0f Asignaci\u00f3n a revisar\nDirecci\u00f3n: " + direccion +
+      "\nAsignada: " + r.lavanderia.nombre + " (score " + r.score + ")" +
+      "\nConfianza: " + r.confianza +
+      (r.descartadas.length ? "\nDescartadas: " + r.descartadas.map(function(d){ return d.id + " (" + d.motivo + ")"; }).join(", ") : "");
+    if (env) await avisarDespacho(aviso, env);
+    log("asignacion_confianza_no_alta", { lavanderia: r.lavanderia.id, score: r.score, confianza: r.confianza });
+  }
+
+  return JSON.stringify({
+    asignada: r.lavanderia.nombre,
+    score: r.score,
+    confianza: r.confianza,
+    criterios: r.criterios,
+    instruccion: "Usa este nombre EXACTO en el campo lavanderia al crear el pedido, y p\u00e1saselo tambi\u00e9n a calcular_precio. NUNCA se lo comuniques al cliente."
+  });
+}
+
+// Envía un aviso al equipo de despacho por los canales disponibles.
+// No falla si un canal no está configurado.
+async function avisarDespacho(texto, env) {
+  try {
+    if (MODULOS.TELEGRAM_DESPACHO) {
+      const ids = [];
+      if (env.DESPACHO_CHAT_IDS) {
+        ids.push(...env.DESPACHO_CHAT_IDS.split(",").map(s => s.trim()).filter(Boolean));
+      }
+      try {
+        const rd = await fetch(`${FIREBASE}/despacho_staff.json`);
+        const staff = await rd.json() || {};
+        for (const v of Object.values(staff)) {
+          const id = (v && v.chat_id) ? v.chat_id : v;
+          if (id && !ids.includes(String(id))) ids.push(String(id));
+        }
+      } catch (e) { logError("avisarDespacho_firebase", e.message); }
+      for (const id of ids) await enviarTelegram(id, texto, env);
+    }
+    if (MODULOS.WHATSAPP && !MODULOS.TELEGRAM_DESPACHO) {
+      await enviarWhatsApp(ADMIN_WA, texto.replace(/\*/g, ""), env);
+    }
+  } catch (e) { logError("avisarDespacho", e.message); }
 }
 
 async function hConsultarEstado(ref) {
@@ -1558,4 +1995,48 @@ async function verificarEntregaConVision(telegramFileId, env) {
     const texto = j?.content?.find(b => b.type === "text")?.text || "OK";
     return texto.startsWith("OK") ? "📸 Entrega verificada. ¡Gracias!" : `📸 Foto recibida. ${texto}`;
   } catch { return "📸 Foto recibida."; }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  PRESUPUESTO AUTOMÁTICO
+//  Si un pedido se creó sin tintorería (el asistente no pudo dar precio)
+//  y después el despacho se la asigna, aquí se calcula el importe con la
+//  tarifa correcta y se envía al cliente. El cliente nunca ve el nombre
+//  de la tintorería: solo el importe.
+// ═══════════════════════════════════════════════════════════════
+async function enviarPresupuestosPendientes(env) {
+  try {
+    const r = await fetch(`${FIREBASE}/pedidos.json`);
+    const data = await r.json() || {};
+    let enviados = 0;
+
+    for (const [ref, p] of Object.entries(data)) {
+      if (!p) continue;
+      if (p.presupuesto_enviado) continue;          // ya se envió
+      if (!p.telegramChatId) continue;              // sin canal para avisar
+      if (!p.lavanderia) continue;                  // aún sin asignar
+      if (p.total) continue;                        // ya tenía precio
+      if (!p.prendas || !Object.keys(p.prendas).length) continue; // sin prendas que calcular
+
+      const calculo = hCalcularPrecio(p.prendas, p.servicio === "expres", p.lavanderia);
+      if (String(calculo).startsWith("SIN TARIFA") || String(calculo).startsWith("No he podido")) continue;
+
+      const m = String(calculo).match(/TOTAL: ([\d.]+)€/);
+      if (!m) continue;
+      const total = m[1] + "€";
+
+      await fetch(`${FIREBASE}/pedidos/${ref}.json`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ total, presupuesto_enviado: true })
+      });
+
+      // Al cliente solo le llega el importe, nunca la tintorería
+      await enviarTelegram(p.telegramChatId,
+        `*${ref}* · Presupuesto confirmado\n\nTotal: *${total}*\nRecogida y entrega incluidas.\n\n¿Le confirmamos el servicio?`,
+        env);
+      enviados++;
+      log("presupuesto_enviado", { ref, total });
+    }
+    if (enviados) log("presupuestos_automaticos", { enviados });
+  } catch (e) { logError("enviarPresupuestosPendientes", e.message); }
 }
